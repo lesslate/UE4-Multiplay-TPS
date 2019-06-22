@@ -32,6 +32,7 @@ void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		IsInAir = Player->GetMovementComponent()->IsFalling();
 		IsCrouch = Player->bIsCrouched;
 		IsProne = Player->IsProne;
+		IsAiming = Player->IsAiming;
 	}
 
 }

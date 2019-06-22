@@ -30,4 +30,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 	bool IsProne;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
+	bool IsAiming;
 };

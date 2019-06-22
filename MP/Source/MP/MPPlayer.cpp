@@ -24,6 +24,8 @@ AMPPlayer::AMPPlayer()
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+	IsProne = false;
+	IsCrouch = false;
 
 	GetCharacterMovement()->JumpZVelocity = 350.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -97,6 +99,9 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMPPlayer::StartSprintServer);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMPPlayer::StopSprintServer);
 
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AMPPlayer::CrouchServer);
+	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::ProneServer);
+
 }
 
 void AMPPlayer::MoveForward(float Value)
@@ -158,3 +163,90 @@ void AMPPlayer::StopSprintMulticast_Implementation()
 	
 	IsSprint = false;
 }
+
+//////////// Crouch ///////////////////////
+void AMPPlayer::CrouchServer_Implementation()
+{
+	CrouchMulticast();
+}
+
+bool AMPPlayer::CrouchServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::CrouchMulticast_Implementation()
+{
+	if (!IsSprint)
+	{
+		if (IsProne)
+		{
+			GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+			IsCrouch = true;
+			IsProne = false;
+			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
+		}
+		else
+		{
+			if (!IsCrouch)
+			{
+				Crouch();
+				IsCrouch = true;
+			}
+			else
+			{
+				UnCrouch();
+				IsCrouch = false;
+			}
+
+		}
+	}
+}
+
+//////////// Prone ///////////////////////
+
+
+void AMPPlayer::ProneServer_Implementation()
+{
+	ProneMulticast();
+}
+
+bool AMPPlayer::ProneServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::ProneMulticast_Implementation()
+{
+	if (!IsProne && !IsSprint && IsCrouch)
+	{
+		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+		IsProne = true;
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
+	}
+}
+
+
+void AMPPlayer::SetCrouchMovement()
+{
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 200.0f;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+}
+
+void AMPPlayer::SetProneMovement()
+{
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 70.0f;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+}
+
+//Property Replicate
+void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AMPPlayer, IsProne);
+	DOREPLIFETIME(AMPPlayer, IsCrouch);
+	DOREPLIFETIME(AMPPlayer, IsAiming);
+	DOREPLIFETIME(AMPPlayer, IsSprint);
+}
+

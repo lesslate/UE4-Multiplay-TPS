@@ -18,14 +18,22 @@ public:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	void SetCrouchMovement();
+	void SetProneMovement();
+
+
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsSprint;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsCrouch;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsProne;
+
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	bool IsAiming;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -72,5 +80,30 @@ public:
 	UFUNCTION(Reliable, NetMulticast)
 	void StopSprintMulticast();
 	void StopSprintMulticast_Implementation();
+
+	//////////  Crouch ////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void CrouchServer();
+	void CrouchServer_Implementation();
+	bool CrouchServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void CrouchMulticast();
+	void CrouchMulticast_Implementation();
+
+	/////// Prone //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void ProneServer();
+	void ProneServer_Implementation();
+	bool ProneServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void ProneMulticast();
+	void ProneMulticast_Implementation();
+
+	UPROPERTY()
+	FTimerHandle timer;
 	
 };
