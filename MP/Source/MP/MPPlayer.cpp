@@ -16,6 +16,7 @@
 #include "Runtime/Engine/Classes/Components/AudioComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Runtime/Engine/Public/TimerManager.h"
+#include "Bullet.h"
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -34,6 +35,10 @@ AMPPlayer::AMPPlayer()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	bUseControllerRotationYaw = false;
+
+	// 公扁 家南
+	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Weapon"));
+	WeaponMesh->SetupAttachment(GetMesh(), TEXT("Weapon_Socket"));
 
 	// 胶橇傅鞠 积己
 	TPSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("TPSpringArm"));
@@ -102,6 +107,9 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AMPPlayer::CrouchServer);
 	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::ProneServer);
 
+	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::AimingServer);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::FireServer);
+
 }
 
 void AMPPlayer::MoveForward(float Value)
@@ -142,9 +150,12 @@ bool AMPPlayer::StartSprintServer_Validate()
 
 void AMPPlayer::StartSprintMulticast_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
-	/*GetCharacterMovement()->MaxWalkSpeedCrouched *= SprintSpeedMultiplier;*/
-	IsSprint = true;
+	if (!IsAiming)
+	{
+		GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+		/*GetCharacterMovement()->MaxWalkSpeedCrouched *= SprintSpeedMultiplier;*/
+		IsSprint = true;
+	}
 }
 
 void AMPPlayer::StopSprintServer_Implementation()
@@ -223,6 +234,75 @@ void AMPPlayer::ProneMulticast_Implementation()
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = true;
 		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
+	}
+}
+
+////////Aiming ///////////////////////
+
+void AMPPlayer::AimingServer_Implementation()
+{
+	AimingMulticast();
+}
+
+bool AMPPlayer::AimingServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::AimingMulticast_Implementation()
+{
+	if (!IsAiming)
+	{
+		IsAiming = true;
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+		GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+	}
+	else
+	{
+		IsAiming = false;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		if (IsProne)
+		{
+			GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+		}
+		else
+		{
+			GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+		}
+	}
+}
+
+//////// Fire /////////////////////////////
+
+void AMPPlayer::FireServer_Implementation()
+{
+	FireMulticast();
+}
+
+bool AMPPlayer::FireServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::FireMulticast_Implementation()
+{
+	if (IsAiming)
+	{
+		
+		if (BulletClass != nullptr)
+		{
+			const FRotator SpawnRotation = GetControlRotation();
+			LOG(Warning, TEXT("Fire"));
+			const FVector SpawnLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+
+			UWorld* const World = GetWorld();
+			if (World != nullptr)
+			{
+				ABullet* Bullet = World->SpawnActor<ABullet>(BulletClass, SpawnLocation, SpawnRotation);
+			}
+		}
 	}
 }
 

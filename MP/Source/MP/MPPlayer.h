@@ -21,6 +21,11 @@ public:
 	void SetCrouchMovement();
 	void SetProneMovement();
 
+	UPROPERTY()
+	FTimerHandle timer;
+
+	UPROPERTY(EditDefaultsOnly, Category = Bullet)
+	TSubclassOf<class ABullet> BulletClass;	
 
 	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsSprint;
@@ -47,11 +52,12 @@ protected:
 	class UCameraComponent* FollowCamera;
 
 	// 무기 메시 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
 	class UStaticMeshComponent* WeaponMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement: Walking")
 	float SprintSpeedMultiplier;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -103,7 +109,27 @@ public:
 	void ProneMulticast();
 	void ProneMulticast_Implementation();
 
-	UPROPERTY()
-	FTimerHandle timer;
+	/////// Aiming //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void AimingServer();
+	void AimingServer_Implementation();
+	bool AimingServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void AimingMulticast();
+	void AimingMulticast_Implementation();
+
+	/////// Fire //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void FireServer();
+	void FireServer_Implementation();
+	bool FireServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void FireMulticast();
+	void FireMulticast_Implementation();
+
 	
 };
