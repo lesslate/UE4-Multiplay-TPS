@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "MP.h"
 #include "GameFramework/Actor.h"
 #include "Bullet.generated.h"
 
@@ -20,9 +20,35 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	//// Called every frame
+	//virtual void Tick(float DeltaTime) override;
 
-	
-	
+	UPROPERTY(EditDefaultsOnly)
+	class UBoxComponent* BulletCollision;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UProjectileMovementComponent* ProjectileMovement;
+
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMeshComponent* BulletMesh;
+
+	UPROPERTY(EditDefaultsOnly)
+	UParticleSystemComponent* BulletParticles;
+
+	UPROPERTY(EditDefaultsOnly)
+	float Velocity;
+
+	UPROPERTY(EditDefaultsOnly)
+	float GravityDelay;
+
+	UPROPERTY(EditDefaultsOnly)
+	float GravityScale;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float BulletExpiry;
+
+	UFUNCTION()
+	void OnBulletHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	void ApplyGravity();
 };

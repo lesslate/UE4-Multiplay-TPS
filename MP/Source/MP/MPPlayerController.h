@@ -14,7 +14,10 @@ class MP_API AMPPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+	AMPPlayerController();
+
 	
-	
-	
+protected:
+	virtual void BeginPlay() override;
 };

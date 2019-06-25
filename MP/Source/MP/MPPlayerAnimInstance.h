@@ -33,4 +33,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 	bool IsAiming;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
+	float ControllerPitch;
 };

@@ -17,6 +17,13 @@
 #include "Particles/ParticleSystem.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 #include "Bullet.h"
+#include "MPPlayerController.h"
+#include "ScopeWidget.h"
+#include "WidgetComponent.h"
+#include "Runtime/Engine/Classes/Engine/World.h"
+#include "UserWidget.h"
+#include "Runtime/Core/Public/Math/UnrealMathUtility.h"
+
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -56,6 +63,10 @@ AMPPlayer::AMPPlayer()
 	FollowCamera->SetupAttachment(TPSpringArm, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	WeaponCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("WeaponCamera"));
+	WeaponCamera->SetupAttachment(WeaponMesh, FName("Muzzle"));
+	WeaponCamera->bUsePawnControlRotation = false;
+
 	// 애니메이션 블루프린트 속성지정
 	static ConstructorHelpers::FClassFinder<UAnimInstance> PlayerAnim(TEXT("AnimBlueprint'/Game/Character/PlayerAnimBP.PlayerAnimBP_C'")); // _C를 붙여 클래스정보를 가져옴
 	if (PlayerAnim.Succeeded())
@@ -70,6 +81,12 @@ AMPPlayer::AMPPlayer()
 		GetMesh()->SetSkeletalMesh(PlayerMesh.Object);
 	}
 
+	static ConstructorHelpers::FClassFinder<UScopeWidget> ScopeWidgetC(TEXT("WidgetBlueprint'/Game/Widget/BP_Scope.BP_Scope_C'"));
+	if (ScopeWidgetC.Succeeded())
+	{
+		ScopeWidgetClass = ScopeWidgetC.Class;
+	}
+
 	SprintSpeedMultiplier = 1.5f;
 }
 
@@ -77,7 +94,8 @@ AMPPlayer::AMPPlayer()
 void AMPPlayer::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	AddScopeWidget();
 }
 
 // Called every frame
@@ -98,8 +116,8 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMPPlayer::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMPPlayer::MoveRight);
 
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Turn", this, &AMPPlayer::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &AMPPlayer::AddControllerPitchInput);
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMPPlayer::StartSprintServer);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMPPlayer::StopSprintServer);
@@ -107,10 +125,35 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AMPPlayer::CrouchServer);
 	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::ProneServer);
 
-	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::AimingServer);
+	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::Aiming);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::FireServer);
 
 }
+void AMPPlayer::AddControllerPitchInput(float Val)
+{
+	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
+	{
+		APlayerController* const PC = CastChecked<APlayerController>(Controller);
+		PC->AddPitchInput(Val);
+	}
+	WraistPitch = GetControlRotation().Pitch;
+	if(FMath::Abs(WraistPitch - PreviousWraistPitch)>3)
+	{
+		WraistPitchServer(WraistPitch);
+		PreviousWraistPitch = WraistPitch;
+	}
+	
+}
+
+void AMPPlayer::AddControllerYawInput(float Val)
+{
+	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
+	{
+		APlayerController* const PC = CastChecked<APlayerController>(Controller);
+		PC->AddYawInput(Val);
+	}
+}
+
 
 void AMPPlayer::MoveForward(float Value)
 {
@@ -239,30 +282,33 @@ void AMPPlayer::ProneMulticast_Implementation()
 
 ////////Aiming ///////////////////////
 
-void AMPPlayer::AimingServer_Implementation()
-{
-	AimingMulticast();
-}
-
-bool AMPPlayer::AimingServer_Validate()
-{
-	return true;
-}
-
-void AMPPlayer::AimingMulticast_Implementation()
+void AMPPlayer::Aiming()
 {
 	if (!IsAiming)
 	{
+		AimingServer(true); 
 		IsAiming = true;
+		
+		GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+		//FollowCamera->SetFieldOfView(10.0f);
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
-		GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+		ScopeWidget->SetVisibility(ESlateVisibility::Visible);
+		FollowCamera->Deactivate();
+		WeaponCamera->Activate();
 	}
 	else
 	{
+		AimingServer(false);
 		IsAiming = false;
+	
+		//FollowCamera->SetFieldOfView(90.0f);
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
+		ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
+		WeaponCamera->Deactivate();
+		FollowCamera->Activate();
+	
 		if (IsProne)
 		{
 			GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
@@ -272,6 +318,26 @@ void AMPPlayer::AimingMulticast_Implementation()
 			GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 		}
 	}
+}
+
+void AMPPlayer::AimingServer_Implementation(bool Aiming)
+{
+	IsAiming = Aiming;
+	if (IsAiming)
+	{
+		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	else
+	{
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
+}
+
+bool AMPPlayer::AimingServer_Validate(bool Aiming)
+{
+	return true;
 }
 
 //////// Fire /////////////////////////////
@@ -301,9 +367,21 @@ void AMPPlayer::FireMulticast_Implementation()
 			if (World != nullptr)
 			{
 				ABullet* Bullet = World->SpawnActor<ABullet>(BulletClass, SpawnLocation, SpawnRotation);
+
+				
 			}
 		}
 	}
+}
+//////// Wraist Pitch
+void AMPPlayer::WraistPitchServer_Implementation(float pitch)
+{
+	WraistPitch = pitch;
+}
+
+bool AMPPlayer::WraistPitchServer_Validate(float pitch)
+{
+	return true;
 }
 
 
@@ -319,6 +397,15 @@ void AMPPlayer::SetProneMovement()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
 }
 
+void AMPPlayer::AddScopeWidget()
+{
+	ScopeWidget = CreateWidget<UScopeWidget>(GetWorld(), ScopeWidgetClass);
+	ScopeWidget->AddToViewport();
+	ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
+}
+
+
+
 //Property Replicate
 void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
@@ -328,5 +415,8 @@ void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AMPPlayer, IsCrouch);
 	DOREPLIFETIME(AMPPlayer, IsAiming);
 	DOREPLIFETIME(AMPPlayer, IsSprint);
+	DOREPLIFETIME(AMPPlayer, WraistPitch);
+	
 }
+
 

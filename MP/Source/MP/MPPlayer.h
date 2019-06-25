@@ -17,15 +17,29 @@ public:
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+	void AddControllerPitchInput(float Val);
+	void AddControllerYawInput(float Val);
 
 	void SetCrouchMovement();
 	void SetProneMovement();
+
+	UPROPERTY(EditDefaultsOnly, Category = Scope)
+	TSubclassOf<class UScopeWidget> ScopeWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UScopeWidget* ScopeWidget;
+
+	UFUNCTION(BlueprintCallable, Category = "Widget")
+	void AddScopeWidget();
 
 	UPROPERTY()
 	FTimerHandle timer;
 
 	UPROPERTY(EditDefaultsOnly, Category = Bullet)
 	TSubclassOf<class ABullet> BulletClass;	
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class AMPPlayerController* MPPC;
 
 	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsSprint;
@@ -39,6 +53,11 @@ public:
 	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsAiming;
 
+	UPROPERTY(replicated, VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	float WraistPitch;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	float PreviousWraistPitch;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -50,6 +69,10 @@ protected:
 	// 카메라 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	class UCameraComponent* FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	class UCameraComponent* WeaponCamera;
+
 
 	// 무기 메시 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
@@ -110,16 +133,15 @@ public:
 	void ProneMulticast_Implementation();
 
 	/////// Aiming //////////////////////
+	UFUNCTION()
+	void Aiming();
 
 	UFUNCTION(Reliable, Server, WithValidation)
-	void AimingServer();
-	void AimingServer_Implementation();
-	bool AimingServer_Validate();
+	void AimingServer(bool Aiming);
+	void AimingServer_Implementation(bool Aiming);
+	bool AimingServer_Validate(bool Aiming);
 
-	UFUNCTION(Reliable, NetMulticast)
-	void AimingMulticast();
-	void AimingMulticast_Implementation();
-
+	
 	/////// Fire //////////////////////
 
 	UFUNCTION(Reliable, Server, WithValidation)
@@ -131,5 +153,12 @@ public:
 	void FireMulticast();
 	void FireMulticast_Implementation();
 
-	
+	/////// WaistPitch //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void WraistPitchServer(float pitch);
+	void WraistPitchServer_Implementation(float pitch);
+	bool WraistPitchServer_Validate(float pitch);
+
+
 };

@@ -33,6 +33,17 @@ void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		IsCrouch = Player->bIsCrouched;
 		IsProne = Player->IsProne;
 		IsAiming = Player->IsAiming;
+		ControllerPitch = Player->WraistPitch;
+
+		if (IsAiming)
+		{
+			ControllerPitch = Player->WraistPitch;
+		}
+		else
+		{
+			ControllerPitch = 0.0f;
+		}
 	}
+
 
 }

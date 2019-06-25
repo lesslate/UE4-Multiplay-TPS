@@ -3,5 +3,16 @@
 #include "MPPlayerController.h"
 
 
+AMPPlayerController::AMPPlayerController()
+{
 
+}
+
+
+void AMPPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+
+}
 
