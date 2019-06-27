@@ -23,7 +23,8 @@
 #include "Runtime/Engine/Classes/Engine/World.h"
 #include "UserWidget.h"
 #include "Runtime/Core/Public/Math/UnrealMathUtility.h"
-
+#include "Projectile.h"
+#include "Components/SphereComponent.h"
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -57,15 +58,23 @@ AMPPlayer::AMPPlayer()
 	TPSpringArm->bInheritYaw = true;
 	TPSpringArm->bDoCollisionTest = true;
 
+	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
+	Sphere->SetupAttachment(WeaponMesh);
+
 
 	// 카메라 생성
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(TPSpringArm, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	FPCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FPCamera"));
+	FPCamera->SetupAttachment(TPSpringArm, USpringArmComponent::SocketName);
+	FPCamera->bUsePawnControlRotation = false;
+
 	WeaponCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("WeaponCamera"));
-	WeaponCamera->SetupAttachment(WeaponMesh, FName("Muzzle"));
-	WeaponCamera->bUsePawnControlRotation = false;
+	WeaponCamera->SetupAttachment(Sphere);
+	WeaponCamera->bUsePawnControlRotation = true;
+
 
 	// 애니메이션 블루프린트 속성지정
 	static ConstructorHelpers::FClassFinder<UAnimInstance> PlayerAnim(TEXT("AnimBlueprint'/Game/Character/PlayerAnimBP.PlayerAnimBP_C'")); // _C를 붙여 클래스정보를 가져옴
@@ -126,7 +135,7 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::ProneServer);
 
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::Aiming);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::FireServer);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::Fire);
 
 }
 void AMPPlayer::AddControllerPitchInput(float Val)
@@ -137,7 +146,7 @@ void AMPPlayer::AddControllerPitchInput(float Val)
 		PC->AddPitchInput(Val);
 	}
 	WraistPitch = GetControlRotation().Pitch;
-	if(FMath::Abs(WraistPitch - PreviousWraistPitch)>3)
+	if(FMath::Abs(WraistPitch - PreviousWraistPitch)>1)
 	{
 		WraistPitchServer(WraistPitch);
 		PreviousWraistPitch = WraistPitch;
@@ -239,6 +248,7 @@ void AMPPlayer::CrouchMulticast_Implementation()
 			IsCrouch = true;
 			IsProne = false;
 			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
+			
 		}
 		else
 		{
@@ -246,11 +256,13 @@ void AMPPlayer::CrouchMulticast_Implementation()
 			{
 				Crouch();
 				IsCrouch = true;
+				
 			}
 			else
 			{
 				UnCrouch();
 				IsCrouch = false;
+				
 			}
 
 		}
@@ -276,6 +288,7 @@ void AMPPlayer::ProneMulticast_Implementation()
 	{
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = true;
+	
 		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
 	}
 }
@@ -342,6 +355,28 @@ bool AMPPlayer::AimingServer_Validate(bool Aiming)
 
 //////// Fire /////////////////////////////
 
+void AMPPlayer::Fire()
+{
+	if (IsAiming)
+	{
+
+		//if (BulletClass != nullptr)
+		//{
+		//	const FRotator SpawnRotation = GetControlRotation();
+		//	LOG(Warning, TEXT("Fire"));
+		//	const FVector SpawnLocation = WeaponCamera->GetForwardVector()*100;
+
+		//	UWorld* const World = GetWorld();
+		//	if (World != nullptr)
+		//	{
+		//		LOG(Warning, TEXT("Spawn"));
+		//		AActor* Bullet = World->SpawnActor<AActor>(BulletClass, SpawnLocation, SpawnRotation);
+
+		//	}
+		//}
+	}
+}
+
 void AMPPlayer::FireServer_Implementation()
 {
 	FireMulticast();
@@ -354,24 +389,7 @@ bool AMPPlayer::FireServer_Validate()
 
 void AMPPlayer::FireMulticast_Implementation()
 {
-	if (IsAiming)
-	{
-		
-		if (BulletClass != nullptr)
-		{
-			const FRotator SpawnRotation = GetControlRotation();
-			LOG(Warning, TEXT("Fire"));
-			const FVector SpawnLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-
-			UWorld* const World = GetWorld();
-			if (World != nullptr)
-			{
-				ABullet* Bullet = World->SpawnActor<ABullet>(BulletClass, SpawnLocation, SpawnRotation);
-
-				
-			}
-		}
-	}
+	
 }
 //////// Wraist Pitch
 void AMPPlayer::WraistPitchServer_Implementation(float pitch)

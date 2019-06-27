@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.19",
+	"EngineAssociation": "4.22",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -19,6 +19,11 @@
 			"Name": "MixamoAnimationRetargeting",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/7d332d8c59f743f4a068710ab88599f6"
+		},
+		{
+			"Name": "RMPP",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/05b3c06715ba4f61aebe67856235b475"
 		}
 	]
 }

@@ -36,7 +36,7 @@ public:
 	FTimerHandle timer;
 
 	UPROPERTY(EditDefaultsOnly, Category = Bullet)
-	TSubclassOf<class ABullet> BulletClass;	
+	TSubclassOf<class AActor> BulletClass;	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class AMPPlayerController* MPPC;
@@ -71,7 +71,15 @@ protected:
 	class UCameraComponent* FollowCamera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	class UCameraComponent* FPCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	class UCameraComponent* WeaponCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	class USphereComponent* Sphere;
+
+	
 
 
 	// 무기 메시 컴포넌트
@@ -143,6 +151,8 @@ public:
 
 	
 	/////// Fire //////////////////////
+	UFUNCTION()
+	void Fire();
 
 	UFUNCTION(Reliable, Server, WithValidation)
 	void FireServer();
