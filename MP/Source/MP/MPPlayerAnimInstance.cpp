@@ -10,6 +10,25 @@
 
 UMPPlayerAnimInstance::UMPPlayerAnimInstance()
 {
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> FIRE_MONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Stand/Firing_Rifle_Montage.Firing_Rifle_Montage'"));
+	if (FIRE_MONTAGE.Succeeded())
+	{
+		FireMontage = FIRE_MONTAGE.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> CROUCH_FIREMONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Crouch/Crouch_Fire_Montage.Crouch_Fire_Montage'"));
+	if (CROUCH_FIREMONTAGE.Succeeded())
+	{
+		CrouchFireMontage = CROUCH_FIREMONTAGE.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> PRONE_FIREMONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Prone/Prone_Firing_Rifle_Montage.Prone_Firing_Rifle_Montage'"));
+	if (PRONE_FIREMONTAGE.Succeeded())
+	{
+		ProneFireMontage = PRONE_FIREMONTAGE.Object;
+	}
+
+
 	CurrentPawnSpeed = 0.0f;
 	IsInAir = false;
 	IsCrouch = false;
@@ -19,6 +38,24 @@ UMPPlayerAnimInstance::UMPPlayerAnimInstance()
 void UMPPlayerAnimInstance::NativeBeginPlay()
 {
 
+}
+
+void UMPPlayerAnimInstance::PlayFireMontage()
+{
+	CHECK(FireMontage!=nullptr)
+	Montage_Play(FireMontage, 1.0f);
+}
+
+void UMPPlayerAnimInstance::PlayCrouchFire()
+{
+	CHECK(CrouchFireMontage != nullptr)
+	Montage_Play(CrouchFireMontage, 1.0f);
+}
+
+void UMPPlayerAnimInstance::PlayProneFire()
+{
+	CHECK(ProneFireMontage != nullptr)
+	Montage_Play(ProneFireMontage, 1.0f);
 }
 
 

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+
 
 #include "MPPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -25,6 +25,9 @@
 #include "Runtime/Core/Public/Math/UnrealMathUtility.h"
 #include "Projectile.h"
 #include "Components/SphereComponent.h"
+#include "MPPlayerAnimInstance.h"
+#include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Components/AudioComponent.h"
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -75,12 +78,29 @@ AMPPlayer::AMPPlayer()
 	WeaponCamera->SetupAttachment(Sphere);
 	WeaponCamera->bUsePawnControlRotation = true;
 
+	// 오디오 컴포넌트
+	PlayerAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerAudio"));
+	PlayerAudio->SetupAttachment(GetMesh());
+
+
+	// 사운드 큐
+	static ConstructorHelpers::FObjectFinder<USoundCue>FIRECUE(TEXT("SoundCue'/Game/Sound/SniperShot_Cue.SniperShot_Cue'"));
+	if (FIRECUE.Succeeded())
+	{
+		ShotCue = FIRECUE.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundCue>AIMCUE(TEXT("SoundCue'/Game/Sound/Zoom_Cue.Zoom_Cue'"));
+	if (AIMCUE.Succeeded())
+	{
+		AimCue = AIMCUE.Object;
+	}
 
 	// 애니메이션 블루프린트 속성지정
-	static ConstructorHelpers::FClassFinder<UAnimInstance> PlayerAnim(TEXT("AnimBlueprint'/Game/Character/PlayerAnimBP.PlayerAnimBP_C'")); // _C를 붙여 클래스정보를 가져옴
-	if (PlayerAnim.Succeeded())
+	static ConstructorHelpers::FClassFinder<UAnimInstance> ANIM(TEXT("AnimBlueprint'/Game/Character/PlayerAnimBP.PlayerAnimBP_C'")); // _C를 붙여 클래스정보를 가져옴
+	if (ANIM.Succeeded())
 	{
-		GetMesh()->SetAnimInstanceClass(PlayerAnim.Class);
+		GetMesh()->SetAnimInstanceClass(ANIM.Class);
 	}
 
 	// 스켈레탈 메시 설정
@@ -96,6 +116,9 @@ AMPPlayer::AMPPlayer()
 		ScopeWidgetClass = ScopeWidgetC.Class;
 	}
 
+
+
+
 	SprintSpeedMultiplier = 1.5f;
 }
 
@@ -105,6 +128,13 @@ void AMPPlayer::BeginPlay()
 	Super::BeginPlay();
 
 	AddScopeWidget();
+}
+
+void AMPPlayer::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	PlayerAnim = Cast<UMPPlayerAnimInstance>(GetMesh()->GetAnimInstance());
 }
 
 // Called every frame
@@ -205,7 +235,7 @@ void AMPPlayer::StartSprintMulticast_Implementation()
 	if (!IsAiming)
 	{
 		GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
-		/*GetCharacterMovement()->MaxWalkSpeedCrouched *= SprintSpeedMultiplier;*/
+		
 		IsSprint = true;
 	}
 }
@@ -309,6 +339,9 @@ void AMPPlayer::Aiming()
 		ScopeWidget->SetVisibility(ESlateVisibility::Visible);
 		FollowCamera->Deactivate();
 		WeaponCamera->Activate();
+
+		PlayerAudio->SetSound(AimCue);
+		PlayerAudio->Play();
 	}
 	else
 	{
@@ -357,41 +390,98 @@ bool AMPPlayer::AimingServer_Validate(bool Aiming)
 
 void AMPPlayer::Fire()
 {
-	if (IsAiming)
+	bool IsMove = GetVelocity().Size()>0;
+	
+	if (IsAiming&!IsMove)
 	{
-
-		//if (BulletClass != nullptr)
-		//{
-		//	const FRotator SpawnRotation = GetControlRotation();
-		//	LOG(Warning, TEXT("Fire"));
-		//	const FVector SpawnLocation = WeaponCamera->GetForwardVector()*100;
-
-		//	UWorld* const World = GetWorld();
-		//	if (World != nullptr)
-		//	{
-		//		LOG(Warning, TEXT("Spawn"));
-		//		AActor* Bullet = World->SpawnActor<AActor>(BulletClass, SpawnLocation, SpawnRotation);
-
-		//	}
-		//}
+		LOG(Warning, TEXT("Fire"));
+		OnFire();
+		if (IsCrouch)
+		{
+			if (IsProne)
+			{
+				PlayerAnim->PlayProneFire();//ProneFire
+				ProneFireServer();
+			}
+			else
+			{
+				PlayerAnim->PlayCrouchFire();//CrouchFire
+				CrouchFireServer();
+			}
+		}
+		else
+		{
+			PlayerAnim->PlayFireMontage(); //StandFire
+			StandFireAnimServer();
+		}
 	}
 }
 
-void AMPPlayer::FireServer_Implementation()
+void AMPPlayer::OnFire()
 {
-	FireMulticast();
+	FVector SphereLocation= Sphere->GetComponentLocation();
+	FRotator CameraRotation = WeaponCamera->GetComponentRotation();
+	FVector CameraRotated = CameraRotation.RotateVector(FVector(0, 0, 0));
+	FVector StartLocation = (SphereLocation + CameraRotated);
+
+	FTransform Transform=UKismetMathLibrary::MakeTransform(StartLocation, CameraRotation,FVector(1,1,1));
+
+	GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
+
+	FireWeapon(Transform);
 }
 
-bool AMPPlayer::FireServer_Validate()
+void AMPPlayer::FireWeapon(FTransform trans)
+{
+
+	UWorld* const World = GetWorld();
+	if (World != nullptr)
+	{
+		
+		World->SpawnActor<AActor>(AmmoClass,trans);
+		if (HasAuthority())
+		{
+			FireWeaponMulticast(AmmoClass, trans);
+		}
+		else
+		{
+			FireWeaponServer(AmmoClass, trans);
+		}
+	}
+}
+
+void AMPPlayer::FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans)
+{
+	FireWeaponMulticast(AmmoClass, trans);
+	UWorld* const World = GetWorld();
+	if (World != nullptr)
+	{
+		World->SpawnActor<AActor>(AmmoClass, trans);
+	}
+}
+
+bool AMPPlayer::FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans)
 {
 	return true;
 }
 
-void AMPPlayer::FireMulticast_Implementation()
+void AMPPlayer::FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans)
 {
+	if (!IsValid(GetController()))
+	{
+		UWorld* const World = GetWorld();
+		if (World != nullptr)
+		{
+			World->SpawnActor<AActor>(AmmoClass, trans);
+		}
+	}
 	
 }
-//////// Wraist Pitch
+
+
+
+//////// Wraist Pitch //////////////////////////////////
+
 void AMPPlayer::WraistPitchServer_Implementation(float pitch)
 {
 	WraistPitch = pitch;
@@ -400,6 +490,55 @@ void AMPPlayer::WraistPitchServer_Implementation(float pitch)
 bool AMPPlayer::WraistPitchServer_Validate(float pitch)
 {
 	return true;
+}
+
+/////////// StandFireAnim ///////////////////////
+void AMPPlayer::StandFireAnimServer_Implementation()
+{
+	StandFireAnimMulticast();
+}
+
+bool AMPPlayer::StandFireAnimServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::StandFireAnimMulticast_Implementation()
+{
+	PlayerAnim->PlayFireMontage();
+}
+/////////// CrouchFire///////////////////////////
+
+void AMPPlayer::CrouchFireServer_Implementation()
+{
+	CrouchFireMulticast();
+}
+
+bool AMPPlayer::CrouchFireServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::CrouchFireMulticast_Implementation()
+{
+	PlayerAnim->PlayCrouchFire();
+}
+
+///////Prone Fire/////////////////////////////
+
+void AMPPlayer::ProneFireServer_Implementation()
+{
+	ProneFireMulticast();
+}
+
+bool AMPPlayer::ProneFireServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::ProneFireMulticast_Implementation()
+{
+	PlayerAnim->PlayProneFire();
 }
 
 

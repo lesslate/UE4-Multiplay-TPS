@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "MP.h"
 #include "Animation/AnimInstance.h"
 #include "MPPlayerAnimInstance.generated.h"
 
@@ -16,8 +16,14 @@ class MP_API UMPPlayerAnimInstance : public UAnimInstance
 	
 public:
 	UMPPlayerAnimInstance();
+
+
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeBeginPlay() override;
+
+	void PlayFireMontage();
+	void PlayCrouchFire();
+	void PlayProneFire();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	float CurrentPawnSpeed;
@@ -36,4 +42,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 	float ControllerPitch;
+
+private:
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* FireMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* CrouchFireMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ProneFireMontage;
 };

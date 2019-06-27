@@ -26,6 +26,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Scope)
 	TSubclassOf<class UScopeWidget> ScopeWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = Bullet)
+	TSubclassOf<class AActor> AmmoClass;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
 	class UScopeWidget* ScopeWidget;
 
@@ -34,9 +37,6 @@ public:
 
 	UPROPERTY()
 	FTimerHandle timer;
-
-	UPROPERTY(EditDefaultsOnly, Category = Bullet)
-	TSubclassOf<class AActor> BulletClass;	
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class AMPPlayerController* MPPC;
@@ -58,9 +58,13 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	float PreviousWraistPitch;
+
+	UPROPERTY()
+	class UGameplayStatics* GameStatic;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
 
 	// 스프링암 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -79,15 +83,23 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	class USphereComponent* Sphere;
 
-	
+	UPROPERTY(BlueprintReadOnly, Category = "Audio")
+	class USoundCue* ShotCue;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Audio")
+	class USoundCue* AimCue;
 
 	// 무기 메시 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
 	class UStaticMeshComponent* WeaponMesh;
 
+	// 오디어 컴포넌트
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Audio)
+	class UAudioComponent* PlayerAudio;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement: Walking")
 	float SprintSpeedMultiplier;
+
 
 public:	
 	// Called every frame
@@ -154,14 +166,20 @@ public:
 	UFUNCTION()
 	void Fire();
 
+	UFUNCTION()
+	void OnFire();
+
+	UFUNCTION()
+	void FireWeapon(FTransform trans);
+
 	UFUNCTION(Reliable, Server, WithValidation)
-	void FireServer();
-	void FireServer_Implementation();
-	bool FireServer_Validate();
+	void FireWeaponServer(TSubclassOf<AActor> Ammo,FTransform trans);
+	void FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans);
+	bool FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans);
 
 	UFUNCTION(Reliable, NetMulticast)
-	void FireMulticast();
-	void FireMulticast_Implementation();
+	void FireWeaponMulticast(TSubclassOf<AActor> Ammo, FTransform trans);
+	void FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans);
 
 	/////// WaistPitch //////////////////////
 
@@ -170,5 +188,41 @@ public:
 	void WraistPitchServer_Implementation(float pitch);
 	bool WraistPitchServer_Validate(float pitch);
 
+	/////// FireAnimStand //////////////////////
 
+	UFUNCTION(Reliable, Server, WithValidation)
+	void StandFireAnimServer();
+	void StandFireAnimServer_Implementation();
+	bool StandFireAnimServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void StandFireAnimMulticast();
+	void StandFireAnimMulticast_Implementation();
+
+
+	/////// CrouchFire //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void CrouchFireServer();
+	void CrouchFireServer_Implementation();
+	bool CrouchFireServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void CrouchFireMulticast();
+	void CrouchFireMulticast_Implementation();
+
+	/////// ProneFire //////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void ProneFireServer();
+	void ProneFireServer_Implementation();
+	bool ProneFireServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void ProneFireMulticast();
+	void ProneFireMulticast_Implementation();
+
+private:
+	UPROPERTY()
+	class UMPPlayerAnimInstance* PlayerAnim;
 };
