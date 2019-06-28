@@ -39,6 +39,9 @@ AMPPlayer::AMPPlayer()
 	IsProne = false;
 	IsCrouch = false;
 
+	PlayerMaxHP = 100;
+	PlayerHP = 100;
+
 	GetCharacterMovement()->JumpZVelocity = 350.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
@@ -428,51 +431,56 @@ void AMPPlayer::OnFire()
 
 	GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
 
-	FireWeapon(Transform);
+	FVector NewVelocity = WeaponCamera->GetForwardVector()*20000.0f;
+
+	FireWeapon(Transform,NewVelocity);
 }
 
-void AMPPlayer::FireWeapon(FTransform trans)
+void AMPPlayer::FireWeapon(FTransform trans,FVector velocity)
 {
 
 	UWorld* const World = GetWorld();
 	if (World != nullptr)
 	{
 		
-		World->SpawnActor<AActor>(AmmoClass,trans);
+		ABullet* Bullet = World->SpawnActor<ABullet>(AmmoClass, trans);
+		Bullet->Velocity = FVector(velocity);
 		if (HasAuthority())
 		{
-			FireWeaponMulticast(AmmoClass, trans);
+			FireWeaponMulticast(AmmoClass, trans,velocity);
 		}
 		else
 		{
-			FireWeaponServer(AmmoClass, trans);
+			FireWeaponServer(AmmoClass, trans, velocity);
 		}
 	}
 }
 
-void AMPPlayer::FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans)
+void AMPPlayer::FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans,FVector velocity)
 {
-	FireWeaponMulticast(AmmoClass, trans);
+	FireWeaponMulticast(Ammo, trans,velocity);
 	UWorld* const World = GetWorld();
 	if (World != nullptr)
 	{
-		World->SpawnActor<AActor>(AmmoClass, trans);
+		ABullet* Bullet = World->SpawnActor<ABullet>(AmmoClass, trans);
+		Bullet->Velocity = FVector(velocity);
 	}
 }
 
-bool AMPPlayer::FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans)
+bool AMPPlayer::FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity)
 {
 	return true;
 }
 
-void AMPPlayer::FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans)
+void AMPPlayer::FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity)
 {
 	if (!IsValid(GetController()))
 	{
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
 		{
-			World->SpawnActor<AActor>(AmmoClass, trans);
+			ABullet* Bullet = World->SpawnActor<ABullet>(AmmoClass, trans);
+			Bullet->Velocity = FVector(velocity);
 		}
 	}
 	
@@ -541,6 +549,49 @@ void AMPPlayer::ProneFireMulticast_Implementation()
 	PlayerAnim->PlayProneFire();
 }
 
+///////// Death //////////////////////////////////
+
+void AMPPlayer::Death()
+{
+	if (IsCrouch)
+	{
+		if (IsProne)
+		{
+			PlayerAnim->PlayProneDeathMontage();
+			DeathMulticast();
+		}
+		else 
+		{
+			PlayerAnim->PlayCrouchDeathMontage();
+			DeathMulticast();
+		}
+	}
+	else 
+	{
+		PlayerAnim->PlayDeathMontage();
+		DeathMulticast();
+	}
+}
+
+void AMPPlayer::DeathMulticast_Implementation()
+{
+	if (IsCrouch)
+	{
+		if (IsProne)
+		{
+			PlayerAnim->PlayProneDeathMontage();
+		}
+		else
+		{
+			PlayerAnim->PlayCrouchDeathMontage();
+		}
+	}
+	else
+	{
+		PlayerAnim->PlayDeathMontage();
+	}
+}
+
 
 void AMPPlayer::SetCrouchMovement()
 {
@@ -561,7 +612,19 @@ void AMPPlayer::AddScopeWidget()
 	ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
 }
 
-
+float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
+{
+	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	if (ActualDamage > 0.f)
+	{
+		PlayerHP -= ActualDamage;
+		if (IsValid(GetController())&&PlayerHP <= 0.f)
+		{
+			DeathMulticast();
+		}
+	}
+	return ActualDamage;
+}
 
 //Property Replicate
 void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

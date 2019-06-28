@@ -10,6 +10,8 @@
 #include "Runtime/Engine/Classes/Components/StaticMeshComponent.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 #include "Components/SphereComponent.h"
+#include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 
 // Sets default values
 ABullet::ABullet()
@@ -17,13 +19,16 @@ ABullet::ABullet()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	RootComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
+	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = RootComp;
 
-	BulletMesh = CreateDefaultSubobject<UStaticMeshComponent>(FName("BulletMesh"));
+	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
+	Sphere->SetupAttachment(RootComponent);
+
+	BulletMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BulletMesh"));
 	BulletMesh->SetupAttachment(RootComponent);
 
-	BulletParticles = CreateDefaultSubobject<UParticleSystemComponent>(FName("ProjectileParticles"));
+	BulletParticles = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ProjectileParticles"));
 	BulletParticles->SetupAttachment(RootComponent);
 
 	
@@ -41,5 +46,37 @@ void ABullet::BeginPlay()
 void ABullet::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	InitialLifeSpan = 5.0f;
+
+	FVector StartTrace = GetActorLocation();
+	FVector EndTrace = StartTrace + (Velocity*DeltaTime);
+
+	FVector Gravity = UKismetMathLibrary::MakeVector(0, 0, -980.0);
+	FVector CurrentGravity = Gravity * DeltaTime;
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, StartTrace, EndTrace, ECC_GameTraceChannel2, CollisionParams))
+	{
+		AActor* HitActor=HitResult.GetActor();
+		if (HitResult.GetActor())
+		{
+			DrawDebugSolidBox(GetWorld(), HitResult.ImpactPoint, FVector(10.0f), FColor::Blue, true);
+			
+			if (HitResult.BoneName != NAME_None)
+			{
+				LOG(Warning, TEXT("%s"), *HitResult.BoneName.ToString());
+			}
+			UGameplayStatics::ApplyPointDamage(HitActor, 50.0f, HitActor->GetActorLocation(), HitResult, nullptr, this, nullptr); // 포인트 데미지
+			Destroy();
+		}
+	}
+	DrawDebugLine(GetWorld(), StartTrace, EndTrace, FColor(255, 0, 255), false, 10.0f);
+
+	SetActorLocation(EndTrace);
+	Velocity = Velocity + CurrentGravity;
 
 }

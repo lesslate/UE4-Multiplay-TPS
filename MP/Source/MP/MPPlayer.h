@@ -59,12 +59,29 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	float PreviousWraistPitch;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	int32 CurrentAmmo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	int32 RemainAmmo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	int32 Magazine;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	float PlayerHP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	float PlayerMaxHP;
+
 	UPROPERTY()
 	class UGameplayStatics* GameStatic;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
+
+	virtual float TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	// 스프링암 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -170,16 +187,16 @@ public:
 	void OnFire();
 
 	UFUNCTION()
-	void FireWeapon(FTransform trans);
+	void FireWeapon(FTransform trans,FVector velocity);
 
 	UFUNCTION(Reliable, Server, WithValidation)
-	void FireWeaponServer(TSubclassOf<AActor> Ammo,FTransform trans);
-	void FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans);
-	bool FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans);
+	void FireWeaponServer(TSubclassOf<AActor> Ammo,FTransform trans, FVector velocity);
+	void FireWeaponServer_Implementation(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity);
+	bool FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity);
 
 	UFUNCTION(Reliable, NetMulticast)
-	void FireWeaponMulticast(TSubclassOf<AActor> Ammo, FTransform trans);
-	void FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans);
+	void FireWeaponMulticast(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity);
+	void FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity);
 
 	/////// WaistPitch //////////////////////
 
@@ -221,6 +238,14 @@ public:
 	UFUNCTION(Reliable, NetMulticast)
 	void ProneFireMulticast();
 	void ProneFireMulticast_Implementation();
+
+	///// Death/////////////////
+	UFUNCTION()
+	void Death();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void DeathMulticast();
+	void DeathMulticast_Implementation();
 
 private:
 	UPROPERTY()

@@ -25,6 +25,10 @@ public:
 	void PlayCrouchFire();
 	void PlayProneFire();
 
+	void PlayDeathMontage();
+	void PlayCrouchDeathMontage();
+	void PlayProneDeathMontage();
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	float CurrentPawnSpeed;
 
@@ -52,4 +56,13 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ProneFireMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* DeathMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* CrouchDeathMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ProneDeathMontage;
 };

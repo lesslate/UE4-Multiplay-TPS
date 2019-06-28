@@ -28,6 +28,23 @@ UMPPlayerAnimInstance::UMPPlayerAnimInstance()
 		ProneFireMontage = PRONE_FIREMONTAGE.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DEATH_MONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Stand/Falling_Forward_Death_Montage.Falling_Forward_Death_Montage'"));
+	if (DEATH_MONTAGE.Succeeded())
+	{
+		DeathMontage = DEATH_MONTAGE.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> CROUCH_DEATHMONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Crouch/Crouch_Death_Montage.Crouch_Death_Montage'"));
+	if (CROUCH_DEATHMONTAGE.Succeeded())
+	{
+		CrouchDeathMontage = CROUCH_DEATHMONTAGE.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> PRONE_DEATHMONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Prone/Prone_Death_Montage.Prone_Death_Montage'"));
+	if (PRONE_DEATHMONTAGE.Succeeded())
+	{
+		ProneDeathMontage = PRONE_DEATHMONTAGE.Object;
+	}
 
 	CurrentPawnSpeed = 0.0f;
 	IsInAir = false;
@@ -58,6 +75,23 @@ void UMPPlayerAnimInstance::PlayProneFire()
 	Montage_Play(ProneFireMontage, 1.0f);
 }
 
+void UMPPlayerAnimInstance::PlayDeathMontage()
+{
+	CHECK(DeathMontage != nullptr)
+	Montage_Play(DeathMontage, 1.0f);
+}
+
+void UMPPlayerAnimInstance::PlayCrouchDeathMontage()
+{
+	CHECK(CrouchDeathMontage != nullptr)
+	Montage_Play(CrouchDeathMontage, 1.0f);
+}
+
+void UMPPlayerAnimInstance::PlayProneDeathMontage()
+{
+	CHECK(ProneDeathMontage != nullptr)
+	Montage_Play(ProneDeathMontage, 1.0f);
+}
 
 void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
@@ -81,6 +115,4 @@ void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			ControllerPitch = 0.0f;
 		}
 	}
-
-
 }

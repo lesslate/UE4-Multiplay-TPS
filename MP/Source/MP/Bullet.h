@@ -23,15 +23,19 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditDefaultsOnly)
-	class USphereComponent* RootComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class USceneComponent* RootComp;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class USphereComponent* Sphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* BulletMesh;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UParticleSystemComponent* BulletParticles;
 
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	FVector Velocity;
 
 };
