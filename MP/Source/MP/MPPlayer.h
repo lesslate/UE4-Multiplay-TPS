@@ -41,6 +41,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class AMPPlayerController* MPPC;
 
+	UPROPERTY(replicated, VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
+	bool IsDeath;
+
 	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = PlayerState)
 	bool IsSprint;
 
@@ -116,6 +119,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement: Walking")
 	float SprintSpeedMultiplier;
+
+	UPROPERTY()
+	class UParticleSystem * FireParticle;
 
 
 public:	

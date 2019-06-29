@@ -38,4 +38,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FVector Velocity;
 
+	UPROPERTY()
+	class UParticleSystem * BloodParticle;
+
+	UPROPERTY()
+	class UParticleSystem * SmokeParticle;
+
 };

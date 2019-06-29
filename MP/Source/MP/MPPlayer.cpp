@@ -85,6 +85,13 @@ AMPPlayer::AMPPlayer()
 	PlayerAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerAudio"));
 	PlayerAudio->SetupAttachment(GetMesh());
 
+	// 파티클 초기화
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> Fire(TEXT("ParticleSystem'/Game/WeaponEffects/AssaultRifle_MF.AssaultRifle_MF'"));
+	if (Fire.Succeeded())
+	{
+		FireParticle = Fire.Object;
+	}
+
 
 	// 사운드 큐
 	static ConstructorHelpers::FObjectFinder<USoundCue>FIRECUE(TEXT("SoundCue'/Game/Sound/SniperShot_Cue.SniperShot_Cue'"));
@@ -138,6 +145,7 @@ void AMPPlayer::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	PlayerAnim = Cast<UMPPlayerAnimInstance>(GetMesh()->GetAnimInstance());
+	MPPC = Cast<AMPPlayerController>(GetController());
 }
 
 // Called every frame
@@ -330,7 +338,7 @@ void AMPPlayer::ProneMulticast_Implementation()
 
 void AMPPlayer::Aiming()
 {
-	if (!IsAiming)
+	if (!IsDeath&&!IsAiming)
 	{
 		AimingServer(true); 
 		IsAiming = true;
@@ -395,8 +403,9 @@ void AMPPlayer::Fire()
 {
 	bool IsMove = GetVelocity().Size()>0;
 	
-	if (IsAiming&!IsMove)
+	if (IsAiming&!IsMove&!IsDeath)
 	{
+		UGameplayStatics::SpawnEmitterAttached(FireParticle, WeaponMesh, FName("Muzzle"), FVector::ZeroVector, FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f)); 
 		LOG(Warning, TEXT("Fire"));
 		OnFire();
 		if (IsCrouch)
@@ -431,7 +440,7 @@ void AMPPlayer::OnFire()
 
 	GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
 
-	FVector NewVelocity = WeaponCamera->GetForwardVector()*20000.0f;
+	FVector NewVelocity = WeaponCamera->GetForwardVector()*24000.0f; // 발사체 속도
 
 	FireWeapon(Transform,NewVelocity);
 }
@@ -474,6 +483,7 @@ bool AMPPlayer::FireWeaponServer_Validate(TSubclassOf<AActor> Ammo, FTransform t
 
 void AMPPlayer::FireWeaponMulticast_Implementation(TSubclassOf<AActor> Ammo, FTransform trans, FVector velocity)
 {
+	UGameplayStatics::SpawnEmitterAttached(FireParticle, WeaponMesh, FName("Muzzle"), FVector::ZeroVector, FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f));
 	if (!IsValid(GetController()))
 	{
 		UWorld* const World = GetWorld();
@@ -553,28 +563,35 @@ void AMPPlayer::ProneFireMulticast_Implementation()
 
 void AMPPlayer::Death()
 {
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ScopeWidget->RemoveFromParent();
+
 	if (IsCrouch)
 	{
 		if (IsProne)
 		{
 			PlayerAnim->PlayProneDeathMontage();
-			DeathMulticast();
 		}
 		else 
 		{
 			PlayerAnim->PlayCrouchDeathMontage();
-			DeathMulticast();
 		}
 	}
 	else 
 	{
 		PlayerAnim->PlayDeathMontage();
-		DeathMulticast();
 	}
+	DeathMulticast();
 }
 
 void AMPPlayer::DeathMulticast_Implementation()
 {
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ScopeWidget->RemoveFromParent();
 	if (IsCrouch)
 	{
 		if (IsProne)
@@ -620,7 +637,11 @@ float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, ACon
 		PlayerHP -= ActualDamage;
 		if (IsValid(GetController())&&PlayerHP <= 0.f)
 		{
-			DeathMulticast();
+			IsDeath = true;
+			ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
+			WeaponCamera->Deactivate();
+			FollowCamera->Activate();
+			Death();
 		}
 	}
 	return ActualDamage;
@@ -635,6 +656,7 @@ void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AMPPlayer, IsCrouch);
 	DOREPLIFETIME(AMPPlayer, IsAiming);
 	DOREPLIFETIME(AMPPlayer, IsSprint);
+	DOREPLIFETIME(AMPPlayer, IsDeath);
 	DOREPLIFETIME(AMPPlayer, WraistPitch);
 	
 }
