@@ -356,10 +356,22 @@ void AMPPlayer::CrouchMulticast_Implementation()
 			{
 				Crouch();
 				IsCrouch = true;
+				if (IsAiming)
+				{
+					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+					CameraManager->ViewPitchMin = -30;
+					CameraManager->ViewPitchMax = 30;
+				}
 				
 			}
 			else
 			{
+				if (IsAiming)
+				{
+					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+					CameraManager->ViewPitchMin = -89.9;
+					CameraManager->ViewPitchMax = 89.9;
+				}
 				UnCrouch();
 				IsCrouch = false;
 				
@@ -389,6 +401,12 @@ void AMPPlayer::ProneMulticast_Implementation()
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = true;
 	
+		if (IsAiming)
+		{
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			CameraManager->ViewPitchMin = -5;
+			CameraManager->ViewPitchMax = 30;
+		}
 		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
 	}
 }
@@ -397,13 +415,25 @@ void AMPPlayer::ProneMulticast_Implementation()
 
 void AMPPlayer::Aiming()
 {
-	if (!IsDeath&&!IsAiming&&!IsReloading)
+	if (!IsDeath && !IsAiming && !IsReloading)
 	{
-		AimingServer(true); 
+		AimingServer(true);
 		IsAiming = true;
-		
+
+		//CameraAngle Limit
+		if (IsCrouch)
+		{
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			CameraManager->ViewPitchMin = -30;
+			CameraManager->ViewPitchMax = 30;
+		}
+		if (IsProne)
+		{
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			CameraManager->ViewPitchMin = -5;
+			CameraManager->ViewPitchMax = 30;
+		}
 		GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
-		//FollowCamera->SetFieldOfView(10.0f);
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 		ScopeWidget->SetVisibility(ESlateVisibility::Visible);
@@ -418,7 +448,11 @@ void AMPPlayer::Aiming()
 		AimingServer(false);
 		IsAiming = false;
 	
-		//FollowCamera->SetFieldOfView(90.0f);
+		//CameraAngle Reset
+		APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+		CameraManager->ViewPitchMin = -89.9f;
+		CameraManager->ViewPitchMax = 89.9f;
+
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 		ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
@@ -428,10 +462,13 @@ void AMPPlayer::Aiming()
 		if (IsProne)
 		{
 			GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
+	
 		}
 		else
 		{
+			
 			GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
+		
 		}
 	}
 }
