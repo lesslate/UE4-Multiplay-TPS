@@ -71,14 +71,29 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
 	int32 Magazine;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = Stat)
 	float PlayerHP;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = Stat)
 	float PlayerMaxHP;
 
 	UPROPERTY()
 	class UGameplayStatics* GameStatic;
+
+	UPROPERTY()
+	bool FireDelay;
+
+	UPROPERTY()
+	bool IsReloading;
+
+	UFUNCTION()
+	void ResetDelay();
+
+	UFUNCTION()
+	void Reload();
+
+	UFUNCTION()
+	void ReloadEnd();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -105,6 +120,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Audio")
 	class USoundCue* ShotCue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Audio")
+	class USoundCue* MetalClickCue;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Audio")
 	class USoundCue* AimCue;
@@ -253,7 +271,18 @@ public:
 	void DeathMulticast();
 	void DeathMulticast_Implementation();
 
+	//// Reload ///////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void ReloadServer();
+	void ReloadServer_Implementation();
+	bool ReloadServer_Validate();
+
+	UFUNCTION(Reliable, NetMulticast)
+	void ReloadMulticast();
+	void ReloadMulticast_Implementation();
 private:
 	UPROPERTY()
 	class UMPPlayerAnimInstance* PlayerAnim;
+
 };

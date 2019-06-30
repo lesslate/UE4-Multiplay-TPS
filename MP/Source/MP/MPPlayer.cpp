@@ -1,4 +1,4 @@
-
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MPPlayer.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -38,9 +38,16 @@ AMPPlayer::AMPPlayer()
 	bReplicates = true;
 	IsProne = false;
 	IsCrouch = false;
+	IsReloading = false;
 
 	PlayerMaxHP = 100;
-	PlayerHP = 100;
+	PlayerHP = PlayerMaxHP;
+
+	CurrentAmmo = 5;
+	RemainAmmo = 50;
+	
+	
+	Magazine = 5;
 
 	GetCharacterMovement()->JumpZVelocity = 350.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -81,6 +88,8 @@ AMPPlayer::AMPPlayer()
 	WeaponCamera->SetupAttachment(Sphere);
 	WeaponCamera->bUsePawnControlRotation = true;
 
+	SprintSpeedMultiplier = 1.5f;
+	
 	// 오디오 컴포넌트
 	PlayerAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerAudio"));
 	PlayerAudio->SetupAttachment(GetMesh());
@@ -100,6 +109,12 @@ AMPPlayer::AMPPlayer()
 		ShotCue = FIRECUE.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<USoundCue>METALCLICK(TEXT("SoundCue'/Game/WeaponEffects/Metal-click_Cue.Metal-click_Cue'"));
+	if (METALCLICK.Succeeded())
+	{
+		MetalClickCue = METALCLICK.Object;
+	}
+	
 	static ConstructorHelpers::FObjectFinder<USoundCue>AIMCUE(TEXT("SoundCue'/Game/Sound/Zoom_Cue.Zoom_Cue'"));
 	if (AIMCUE.Succeeded())
 	{
@@ -120,17 +135,59 @@ AMPPlayer::AMPPlayer()
 		GetMesh()->SetSkeletalMesh(PlayerMesh.Object);
 	}
 
+	// 위젯 클래스
 	static ConstructorHelpers::FClassFinder<UScopeWidget> ScopeWidgetC(TEXT("WidgetBlueprint'/Game/Widget/BP_Scope.BP_Scope_C'"));
 	if (ScopeWidgetC.Succeeded())
 	{
 		ScopeWidgetClass = ScopeWidgetC.Class;
 	}
 
-
-
-
-	SprintSpeedMultiplier = 1.5f;
 }
+
+void AMPPlayer::ResetDelay()
+{
+	FireDelay = false;
+}
+
+void AMPPlayer::Reload()
+{
+	if (!IsAiming && !IsReloading && CurrentAmmo != Magazine && RemainAmmo != 0)
+	{
+		IsReloading = true;
+		if (IsCrouch)
+		{
+			if (IsProne)
+			{
+				PlayerAnim->PlayProneReloadMontage();
+			}
+			else
+			{
+				PlayerAnim->PlayCrouchReloadMontage();
+			}
+		}
+		else
+		{
+			PlayerAnim->PlayReloadMontage();
+		}
+		ReloadServer();
+	}
+}
+
+void AMPPlayer::ReloadEnd()
+{
+	if ((Magazine - CurrentAmmo) > RemainAmmo)
+	{
+		CurrentAmmo = (RemainAmmo + CurrentAmmo);
+		RemainAmmo = 0;
+	}
+	else
+	{
+		RemainAmmo = RemainAmmo - (Magazine - CurrentAmmo);
+		CurrentAmmo = (Magazine - CurrentAmmo) + CurrentAmmo;
+	}
+	IsReloading = false;
+}
+
 
 // Called when the game starts or when spawned
 void AMPPlayer::BeginPlay()
@@ -177,6 +234,8 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::Aiming);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::Fire);
+
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AMPPlayer::Reload);
 
 }
 void AMPPlayer::AddControllerPitchInput(float Val)
@@ -338,7 +397,7 @@ void AMPPlayer::ProneMulticast_Implementation()
 
 void AMPPlayer::Aiming()
 {
-	if (!IsDeath&&!IsAiming)
+	if (!IsDeath&&!IsAiming&&!IsReloading)
 	{
 		AimingServer(true); 
 		IsAiming = true;
@@ -403,8 +462,10 @@ void AMPPlayer::Fire()
 {
 	bool IsMove = GetVelocity().Size()>0;
 	
-	if (IsAiming&!IsMove&!IsDeath)
+	if (!FireDelay && IsAiming && !IsMove && !IsDeath&& CurrentAmmo!=0)
 	{
+		FireDelay = true;
+		CurrentAmmo--;
 		UGameplayStatics::SpawnEmitterAttached(FireParticle, WeaponMesh, FName("Muzzle"), FVector::ZeroVector, FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f)); 
 		LOG(Warning, TEXT("Fire"));
 		OnFire();
@@ -426,7 +487,14 @@ void AMPPlayer::Fire()
 			PlayerAnim->PlayFireMontage(); //StandFire
 			StandFireAnimServer();
 		}
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::ResetDelay, 1.0f, false);
 	}
+	if(CurrentAmmo==0)
+	{
+		PlayerAudio->SetSound(MetalClickCue);
+		PlayerAudio->Play();
+	}
+	
 }
 
 void AMPPlayer::OnFire()
@@ -567,6 +635,8 @@ void AMPPlayer::Death()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ScopeWidget->RemoveFromParent();
+	WeaponCamera->Deactivate();
+	FollowCamera->Activate();
 
 	if (IsCrouch)
 	{
@@ -592,6 +662,9 @@ void AMPPlayer::DeathMulticast_Implementation()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ScopeWidget->RemoveFromParent();
+	WeaponCamera->Deactivate();
+	FollowCamera->Activate();
+
 	if (IsCrouch)
 	{
 		if (IsProne)
@@ -606,6 +679,36 @@ void AMPPlayer::DeathMulticast_Implementation()
 	else
 	{
 		PlayerAnim->PlayDeathMontage();
+	}
+}
+
+///////////// Reload /////////////////////////
+void AMPPlayer::ReloadServer_Implementation()
+{
+	ReloadMulticast();
+}
+
+bool AMPPlayer::ReloadServer_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::ReloadMulticast_Implementation()
+{
+	if (IsCrouch)
+	{
+		if (IsProne)
+		{
+			PlayerAnim->PlayProneReloadMontage();
+		}
+		else
+		{
+			PlayerAnim->PlayCrouchReloadMontage();
+		}
+	}
+	else
+	{
+		PlayerAnim->PlayReloadMontage();
 	}
 }
 
@@ -658,6 +761,8 @@ void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AMPPlayer, IsSprint);
 	DOREPLIFETIME(AMPPlayer, IsDeath);
 	DOREPLIFETIME(AMPPlayer, WraistPitch);
+	DOREPLIFETIME(AMPPlayer, PlayerHP);
+	DOREPLIFETIME(AMPPlayer, PlayerMaxHP);
 	
 }
 

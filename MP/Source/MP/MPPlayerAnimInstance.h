@@ -29,6 +29,10 @@ public:
 	void PlayCrouchDeathMontage();
 	void PlayProneDeathMontage();
 
+	void PlayReloadMontage();
+	void PlayCrouchReloadMontage();
+	void PlayProneReloadMontage();
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	float CurrentPawnSpeed;
 
@@ -46,6 +50,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 	float ControllerPitch;
+
+	UFUNCTION()
+	void AnimNotify_ReloadEnd();
+
+
+
 
 private:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
@@ -65,4 +75,16 @@ private:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ProneDeathMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ReloadMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* CrouchReloadMontage;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Attack, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ProneReloadMontage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	class AMPPlayer* MPPlayer;
 };

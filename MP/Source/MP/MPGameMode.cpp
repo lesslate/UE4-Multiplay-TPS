@@ -3,6 +3,7 @@
 #include "MPGameMode.h"
 #include "MPCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+#include "MPPlayerController.h"
 
 AMPGameMode::AMPGameMode()
 {
@@ -11,5 +12,6 @@ AMPGameMode::AMPGameMode()
 	if (PlayerPawnBPClass.Class != NULL)
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
+		PlayerControllerClass = AMPPlayerController::StaticClass();
 	}
 }

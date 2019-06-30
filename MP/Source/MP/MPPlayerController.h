@@ -17,6 +17,12 @@ class MP_API AMPPlayerController : public APlayerController
 public:
 	AMPPlayerController();
 
+	UPROPERTY(EditDefaultsOnly, Category = Scope)
+	TSubclassOf<class UWidget_HUD> HUDWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UWidget_HUD* HUDWidget;
+
 	
 protected:
 	virtual void BeginPlay() override;

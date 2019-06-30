@@ -89,7 +89,7 @@ void ABullet::Tick(float DeltaTime)
 				}
 				else 
 				{
-					UGameplayStatics::ApplyPointDamage(HitActor, 50.0f, HitActor->GetActorLocation(), HitResult, nullptr, this, nullptr);
+					UGameplayStatics::ApplyPointDamage(HitActor, 90.0f, HitActor->GetActorLocation(), HitResult, nullptr, this, nullptr);
 				}
 			}
 			else
