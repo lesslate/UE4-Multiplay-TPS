@@ -39,6 +39,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	bool IsInAir;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
+	bool IsReload;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Pawn)
 	bool IsCrouch;
 

@@ -5,11 +5,13 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "ConstructorHelpers.h"
+#include "Engine/Engine.h"
 
 
 
 UMPPlayerAnimInstance::UMPPlayerAnimInstance()
 {
+
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> FIRE_MONTAGE(TEXT("AnimMontage'/Game/SoldierAnimation/Stand/Firing_Rifle_Montage.Firing_Rifle_Montage'"));
 	if (FIRE_MONTAGE.Succeeded())
 	{
@@ -134,7 +136,7 @@ void UMPPlayerAnimInstance::AnimNotify_ReloadEnd()
 {
 	MPPlayer = Cast<AMPPlayer>(TryGetPawnOwner());
 	MPPlayer->ReloadEnd();
-
+	
 }
 
 void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -145,10 +147,11 @@ void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		CurrentPawnSpeed = Player->GetVelocity().Size();
 		IsInAir = Player->GetMovementComponent()->IsFalling();
-		IsCrouch = Player->bIsCrouched;
+		IsCrouch = Player->IsCrouch;
 		IsProne = Player->IsProne;
 		IsAiming = Player->IsAiming;
 		ControllerPitch = Player->WraistPitch;
+		IsReload = Player->IsReloading;
 
 		if (IsAiming)
 		{
@@ -159,4 +162,5 @@ void UMPPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			ControllerPitch = 0.0f;
 		}
 	}
+	
 }

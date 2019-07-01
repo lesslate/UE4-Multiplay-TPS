@@ -77,14 +77,14 @@ public:
 	UPROPERTY(replicated,VisibleAnywhere, BlueprintReadWrite, Category = Stat)
 	float PlayerMaxHP;
 
+	UPROPERTY(replicated, VisibleAnywhere, BlueprintReadWrite, Category = Stat)
+	bool IsReloading;
+
 	UPROPERTY()
 	class UGameplayStatics* GameStatic;
 
 	UPROPERTY()
 	bool FireDelay;
-
-	UPROPERTY()
-	bool IsReloading;
 
 	UFUNCTION()
 	void ResetDelay();
@@ -173,25 +173,21 @@ public:
 
 	//////////  Crouch ////////////////////
 
+	void PlayerCrouch();
+
 	UFUNCTION(Reliable, Server, WithValidation)
 	void CrouchServer();
 	void CrouchServer_Implementation();
 	bool CrouchServer_Validate();
 
-	UFUNCTION(Reliable, NetMulticast)
-	void CrouchMulticast();
-	void CrouchMulticast_Implementation();
-
 	/////// Prone //////////////////////
+
+	void PlayerProne();
 
 	UFUNCTION(Reliable, Server, WithValidation)
 	void ProneServer();
 	void ProneServer_Implementation();
 	bool ProneServer_Validate();
-
-	UFUNCTION(Reliable, NetMulticast)
-	void ProneMulticast();
-	void ProneMulticast_Implementation();
 
 	/////// Aiming //////////////////////
 	UFUNCTION()
@@ -272,6 +268,7 @@ public:
 	void DeathMulticast_Implementation();
 
 	//// Reload ///////////////////////
+
 
 	UFUNCTION(Reliable, Server, WithValidation)
 	void ReloadServer();

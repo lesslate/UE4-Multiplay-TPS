@@ -28,6 +28,7 @@
 #include "MPPlayerAnimInstance.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "Components/AudioComponent.h"
+#include "Engine/Engine.h"
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -46,7 +47,8 @@ AMPPlayer::AMPPlayer()
 	CurrentAmmo = 5;
 	RemainAmmo = 50;
 	
-	
+	GetMesh()->VisibilityBasedAnimTickOption= EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // Server Refresh Bones
+
 	Magazine = 5;
 
 	GetCharacterMovement()->JumpZVelocity = 350.0f;
@@ -149,29 +151,7 @@ void AMPPlayer::ResetDelay()
 	FireDelay = false;
 }
 
-void AMPPlayer::Reload()
-{
-	if (!IsAiming && !IsReloading && CurrentAmmo != Magazine && RemainAmmo != 0)
-	{
-		IsReloading = true;
-		if (IsCrouch)
-		{
-			if (IsProne)
-			{
-				PlayerAnim->PlayProneReloadMontage();
-			}
-			else
-			{
-				PlayerAnim->PlayCrouchReloadMontage();
-			}
-		}
-		else
-		{
-			PlayerAnim->PlayReloadMontage();
-		}
-		ReloadServer();
-	}
-}
+
 
 void AMPPlayer::ReloadEnd()
 {
@@ -229,8 +209,8 @@ void AMPPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMPPlayer::StartSprintServer);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMPPlayer::StopSprintServer);
 
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AMPPlayer::CrouchServer);
-	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::ProneServer);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AMPPlayer::PlayerCrouch);
+	PlayerInputComponent->BindAction("Prone", IE_Released, this, &AMPPlayer::PlayerProne);
 
 	PlayerInputComponent->BindAction("Aiming", IE_Pressed, this, &AMPPlayer::Aiming);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMPPlayer::Fire);
@@ -328,18 +308,10 @@ void AMPPlayer::StopSprintMulticast_Implementation()
 }
 
 //////////// Crouch ///////////////////////
-void AMPPlayer::CrouchServer_Implementation()
-{
-	CrouchMulticast();
-}
 
-bool AMPPlayer::CrouchServer_Validate()
+void AMPPlayer::PlayerCrouch()
 {
-	return true;
-}
-
-void AMPPlayer::CrouchMulticast_Implementation()
-{
+	
 	if (!IsSprint)
 	{
 		if (IsProne)
@@ -348,7 +320,6 @@ void AMPPlayer::CrouchMulticast_Implementation()
 			IsCrouch = true;
 			IsProne = false;
 			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
-			
 		}
 		else
 		{
@@ -362,7 +333,7 @@ void AMPPlayer::CrouchMulticast_Implementation()
 					CameraManager->ViewPitchMin = -30;
 					CameraManager->ViewPitchMax = 30;
 				}
-				
+
 			}
 			else
 			{
@@ -374,19 +345,100 @@ void AMPPlayer::CrouchMulticast_Implementation()
 				}
 				UnCrouch();
 				IsCrouch = false;
-				
+
+			}
+
+		}
+		CrouchServer();
+	}
+	LOG(Warning, TEXT("%s, %s"), IsCrouch ? TEXT("true") : TEXT("false"),NETMODE_WORLD);
+}
+
+void AMPPlayer::CrouchServer_Implementation()
+{
+	if (!IsSprint)
+	{
+		if (IsProne)
+		{
+			GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+			IsCrouch = true;
+			IsProne = false;
+			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
+
+		}
+		else
+		{
+			if (!IsCrouch)
+			{
+				Crouch();
+				IsCrouch = true;
+				if (IsAiming)
+				{
+					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+					CameraManager->ViewPitchMin = -30;
+					CameraManager->ViewPitchMax = 30;
+				}
+
+			}
+			else
+			{
+				if (IsAiming)
+				{
+					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+					CameraManager->ViewPitchMin = -89.9;
+					CameraManager->ViewPitchMax = 89.9;
+				}
+				UnCrouch();
+				IsCrouch = false;
+
 			}
 
 		}
 	}
+	LOG(Warning, TEXT("%s, %s"), IsCrouch ? TEXT("true") : TEXT("false"), NETMODE_WORLD);
+}
+
+bool AMPPlayer::CrouchServer_Validate()
+{
+	return true;
 }
 
 //////////// Prone ///////////////////////
 
+void AMPPlayer::PlayerProne()
+{
+	if (!IsProne && !IsSprint && IsCrouch)
+	{
+		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+		IsProne = true;
 
+		if (IsAiming)
+		{
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			CameraManager->ViewPitchMin = -5;
+			CameraManager->ViewPitchMax = 30;
+		}
+		
+		ProneServer();
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
+	}
+	
+}
 void AMPPlayer::ProneServer_Implementation()
 {
-	ProneMulticast();
+	if (!IsProne && !IsSprint && IsCrouch)
+	{
+		//GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+		IsProne = true;
+
+	/*	if (IsAiming)
+		{
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			CameraManager->ViewPitchMin = -5;
+			CameraManager->ViewPitchMax = 30;
+		}*/
+		//GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
+	}
 }
 
 bool AMPPlayer::ProneServer_Validate()
@@ -394,22 +446,6 @@ bool AMPPlayer::ProneServer_Validate()
 	return true;
 }
 
-void AMPPlayer::ProneMulticast_Implementation()
-{
-	if (!IsProne && !IsSprint && IsCrouch)
-	{
-		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
-		IsProne = true;
-	
-		if (IsAiming)
-		{
-			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-			CameraManager->ViewPitchMin = -5;
-			CameraManager->ViewPitchMax = 30;
-		}
-		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
-	}
-}
 
 ////////Aiming ///////////////////////
 
@@ -720,8 +756,34 @@ void AMPPlayer::DeathMulticast_Implementation()
 }
 
 ///////////// Reload /////////////////////////
+
+void AMPPlayer::Reload()
+{
+	if (!IsAiming && !IsReloading && CurrentAmmo != Magazine && RemainAmmo != 0)
+	{
+		IsReloading = true;
+		if (IsCrouch)
+		{
+			if (IsProne)
+			{
+				PlayerAnim->PlayProneReloadMontage();
+			}
+			else
+			{
+				PlayerAnim->PlayCrouchReloadMontage();
+			}
+		}
+		else
+		{
+			PlayerAnim->PlayReloadMontage();
+		}
+		ReloadServer();
+	}
+}
+
 void AMPPlayer::ReloadServer_Implementation()
 {
+	
 	ReloadMulticast();
 }
 
@@ -732,21 +794,27 @@ bool AMPPlayer::ReloadServer_Validate()
 
 void AMPPlayer::ReloadMulticast_Implementation()
 {
+	IsReloading = true;
+
 	if (IsCrouch)
 	{
 		if (IsProne)
 		{
+			
 			PlayerAnim->PlayProneReloadMontage();
 		}
 		else
 		{
+		
 			PlayerAnim->PlayCrouchReloadMontage();
 		}
 	}
 	else
 	{
+	
 		PlayerAnim->PlayReloadMontage();
 	}
+
 }
 
 
@@ -797,6 +865,7 @@ void AMPPlayer::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AMPPlayer, IsAiming);
 	DOREPLIFETIME(AMPPlayer, IsSprint);
 	DOREPLIFETIME(AMPPlayer, IsDeath);
+	DOREPLIFETIME(AMPPlayer, IsReloading);
 	DOREPLIFETIME(AMPPlayer, WraistPitch);
 	DOREPLIFETIME(AMPPlayer, PlayerHP);
 	DOREPLIFETIME(AMPPlayer, PlayerMaxHP);

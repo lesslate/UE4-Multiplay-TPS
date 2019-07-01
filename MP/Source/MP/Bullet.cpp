@@ -14,6 +14,7 @@
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "ConstructorHelpers.h"
+#include "Engine/Engine.h"
 
 // Sets default values
 ABullet::ABullet()
@@ -81,7 +82,8 @@ void ABullet::Tick(float DeltaTime)
 			if (HitResult.BoneName != NAME_None)
 			{
 				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BloodParticle, HitResult.ImpactPoint, FRotator::ZeroRotator, FVector(3.0f, 3.0f, 3.0f));
-				LOG(Warning, TEXT("%s"), *HitResult.BoneName.ToString());
+				LOG(Warning, TEXT("%s, %s"), *HitResult.BoneName.ToString(),NETMODE_WORLD);
+				
 				if(HitResult.BoneName == TEXT("head"))
 				{
 					UGameplayStatics::ApplyPointDamage(HitActor, 100.0f, HitActor->GetActorLocation(), HitResult, nullptr, this, nullptr);
