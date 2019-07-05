@@ -29,6 +29,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Bullet)
 	TSubclassOf<class AActor> AmmoClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = Camera)
+	TSubclassOf<class UCameraShake> CameraShakeClass;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
 	class UScopeWidget* ScopeWidget;
 
@@ -37,6 +40,7 @@ public:
 
 	UPROPERTY()
 	FTimerHandle timer;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class AMPPlayerController* MPPC;
@@ -176,9 +180,9 @@ public:
 	void PlayerCrouch();
 
 	UFUNCTION(Reliable, Server, WithValidation)
-	void CrouchServer();
-	void CrouchServer_Implementation();
-	bool CrouchServer_Validate();
+	void CrouchServer(bool Crouching);
+	void CrouchServer_Implementation(bool Crouching);
+	bool CrouchServer_Validate(bool Crouching);
 
 	/////// Prone //////////////////////
 

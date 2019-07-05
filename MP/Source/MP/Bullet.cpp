@@ -45,6 +45,8 @@ ABullet::ABullet()
 	{
 		SmokeParticle = Smoke.Object;
 	}
+
+	InitialLifeSpan = 5.0f;
 }
 
 // Called when the game starts or when spawned
@@ -60,7 +62,7 @@ void ABullet::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	InitialLifeSpan = 5.0f;
+	
 
 	FVector StartTrace = GetActorLocation();
 	FVector EndTrace = StartTrace + (Velocity*DeltaTime);

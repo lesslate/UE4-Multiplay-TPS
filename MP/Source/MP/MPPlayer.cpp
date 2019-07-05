@@ -320,20 +320,21 @@ void AMPPlayer::PlayerCrouch()
 			IsCrouch = true;
 			IsProne = false;
 			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
+			
 		}
 		else
 		{
 			if (!IsCrouch)
 			{
 				Crouch();
-				IsCrouch = true;
+				//IsCrouch = true;
 				if (IsAiming)
 				{
 					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
 					CameraManager->ViewPitchMin = -30;
 					CameraManager->ViewPitchMax = 30;
 				}
-
+				CrouchServer(true);
 			}
 			else
 			{
@@ -344,61 +345,30 @@ void AMPPlayer::PlayerCrouch()
 					CameraManager->ViewPitchMax = 89.9;
 				}
 				UnCrouch();
-				IsCrouch = false;
-
+				//IsCrouch = false;
+				CrouchServer(false);
 			}
 
 		}
-		CrouchServer();
+		
 	}
 	LOG(Warning, TEXT("%s, %s"), IsCrouch ? TEXT("true") : TEXT("false"),NETMODE_WORLD);
 }
 
-void AMPPlayer::CrouchServer_Implementation()
+void AMPPlayer::CrouchServer_Implementation(bool Crouching)
 {
-	if (!IsSprint)
+	if (Crouching)
 	{
-		if (IsProne)
-		{
-			GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
-			IsCrouch = true;
-			IsProne = false;
-			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
-
-		}
-		else
-		{
-			if (!IsCrouch)
-			{
-				Crouch();
-				IsCrouch = true;
-				if (IsAiming)
-				{
-					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-					CameraManager->ViewPitchMin = -30;
-					CameraManager->ViewPitchMax = 30;
-				}
-
-			}
-			else
-			{
-				if (IsAiming)
-				{
-					APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-					CameraManager->ViewPitchMin = -89.9;
-					CameraManager->ViewPitchMax = 89.9;
-				}
-				UnCrouch();
-				IsCrouch = false;
-
-			}
-
-		}
+		IsCrouch = true;
 	}
-	LOG(Warning, TEXT("%s, %s"), IsCrouch ? TEXT("true") : TEXT("false"), NETMODE_WORLD);
+	else
+	{
+		IsCrouch = false;
+	}
+	
 }
 
-bool AMPPlayer::CrouchServer_Validate()
+bool AMPPlayer::CrouchServer_Validate(bool Crouching)
 {
 	return true;
 }
@@ -428,7 +398,7 @@ void AMPPlayer::ProneServer_Implementation()
 {
 	if (!IsProne && !IsSprint && IsCrouch)
 	{
-		//GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = true;
 
 	/*	if (IsAiming)
@@ -437,7 +407,7 @@ void AMPPlayer::ProneServer_Implementation()
 			CameraManager->ViewPitchMin = -5;
 			CameraManager->ViewPitchMax = 30;
 		}*/
-		//GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
 	}
 }
 
@@ -533,15 +503,21 @@ bool AMPPlayer::AimingServer_Validate(bool Aiming)
 
 void AMPPlayer::Fire()
 {
-	bool IsMove = GetVelocity().Size()>0;
+	bool IsMove = GetVelocity().Size()>0; // Can Fire Character is Not Move
 	
 	if (!FireDelay && IsAiming && !IsMove && !IsDeath&& CurrentAmmo!=0)
 	{
+		APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)); // FireCameraShake
+		CameraManager->PlayCameraShake(CameraShakeClass, 1.0f);
+
 		FireDelay = true;
 		CurrentAmmo--;
 		UGameplayStatics::SpawnEmitterAttached(FireParticle, WeaponMesh, FName("Muzzle"), FVector::ZeroVector, FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f)); 
-		LOG(Warning, TEXT("Fire"));
+
+		
 		OnFire();
+
+		// Play Animation
 		if (IsCrouch)
 		{
 			if (IsProne)
