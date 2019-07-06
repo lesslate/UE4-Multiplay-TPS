@@ -29,6 +29,9 @@
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "Components/AudioComponent.h"
 #include "Engine/Engine.h"
+#include "Widget_Death.h"
+#include "Widget_Winner.h"
+#include "MPGameMode.h"
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -123,6 +126,13 @@ AMPPlayer::AMPPlayer()
 		AimCue = AIMCUE.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<USoundCue>HITCUE(TEXT("SoundCue'/Game/Sound/Hit_Cue.Hit_Cue'"));
+	if (HITCUE.Succeeded())
+	{
+		HitCue = HITCUE.Object;
+	}
+
+
 	// 애니메이션 블루프린트 속성지정
 	static ConstructorHelpers::FClassFinder<UAnimInstance> ANIM(TEXT("AnimBlueprint'/Game/Character/PlayerAnimBP.PlayerAnimBP_C'")); // _C를 붙여 클래스정보를 가져옴
 	if (ANIM.Succeeded())
@@ -142,6 +152,20 @@ AMPPlayer::AMPPlayer()
 	if (ScopeWidgetC.Succeeded())
 	{
 		ScopeWidgetClass = ScopeWidgetC.Class;
+	}
+
+	// 위젯 클래스
+	static ConstructorHelpers::FClassFinder<UWidget_Death> DEATHWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_DeathWidget.BP_DeathWidget_C'"));
+	if (DEATHWIDGET.Succeeded())
+	{
+		DeathWidgetClass = DEATHWIDGET.Class;
+	}
+
+	// 위젯 클래스
+	static ConstructorHelpers::FClassFinder<UWidget_Winner> WINNERWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_WinnerWidget.BP_WinnerWidget_C'"));
+	if (WINNERWIDGET.Succeeded())
+	{
+		WinnerWidgetClass = WINNERWIDGET.Class;
 	}
 
 }
@@ -174,7 +198,8 @@ void AMPPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AddScopeWidget();
+	AddWidget();
+	
 }
 
 void AMPPlayer::PostInitializeComponents()
@@ -182,7 +207,13 @@ void AMPPlayer::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	PlayerAnim = Cast<UMPPlayerAnimInstance>(GetMesh()->GetAnimInstance());
-	MPPC = Cast<AMPPlayerController>(GetController());
+	CHECK(PlayerAnim != nullptr)
+
+	GameMode = Cast<AMPGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (GameMode != nullptr)
+	{
+		GameMode->EndGame.AddUObject(this, &AMPPlayer::AddEndGameWidget);
+	}
 }
 
 // Called every frame
@@ -421,6 +452,7 @@ bool AMPPlayer::ProneServer_Validate()
 
 void AMPPlayer::Aiming()
 {
+	
 	if (!IsDeath && !IsAiming && !IsReloading)
 	{
 		AimingServer(true);
@@ -555,7 +587,8 @@ void AMPPlayer::OnFire()
 
 	FTransform Transform=UKismetMathLibrary::MakeTransform(StartLocation, CameraRotation,FVector(1,1,1));
 
-	GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
+	//GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
+	FireSoundServer(StartLocation);
 
 	FVector NewVelocity = WeaponCamera->GetForwardVector()*24000.0f; // 발사체 속도
 
@@ -686,6 +719,8 @@ void AMPPlayer::Death()
 	ScopeWidget->RemoveFromParent();
 	WeaponCamera->Deactivate();
 	FollowCamera->Activate();
+	IsDeath = true;
+	
 
 	if (IsCrouch)
 	{
@@ -703,6 +738,7 @@ void AMPPlayer::Death()
 		PlayerAnim->PlayDeathMontage();
 	}
 	DeathMulticast();
+	
 }
 
 void AMPPlayer::DeathMulticast_Implementation()
@@ -713,7 +749,7 @@ void AMPPlayer::DeathMulticast_Implementation()
 	ScopeWidget->RemoveFromParent();
 	WeaponCamera->Deactivate();
 	FollowCamera->Activate();
-
+	IsDeath = true;
 	if (IsCrouch)
 	{
 		if (IsProne)
@@ -729,6 +765,7 @@ void AMPPlayer::DeathMulticast_Implementation()
 	{
 		PlayerAnim->PlayDeathMontage();
 	}
+	
 }
 
 ///////////// Reload /////////////////////////
@@ -792,6 +829,27 @@ void AMPPlayer::ReloadMulticast_Implementation()
 	}
 
 }
+//// Fire Sound///////////////
+
+bool AMPPlayer::FireSoundServer_Validate(FVector SoundLocation)
+{
+	return true;
+}
+
+void AMPPlayer::FireSoundServer_Implementation(FVector SoundLocation)
+{
+	FireSoundMulticast(SoundLocation);
+}
+
+void AMPPlayer::FireSoundMulticast_Implementation(FVector SoundLocation)
+{
+	UGameplayStatics::PlaySoundAtLocation(this,  ShotCue, SoundLocation);
+}
+
+void AMPPlayer::HitSoundClient_Implementation(FVector SoundLocation)
+{
+	UGameplayStatics::PlaySoundAtLocation(this, HitCue, SoundLocation);
+}
 
 
 void AMPPlayer::SetCrouchMovement()
@@ -806,11 +864,34 @@ void AMPPlayer::SetProneMovement()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
 }
 
-void AMPPlayer::AddScopeWidget()
+void AMPPlayer::AddEndGameWidget_Implementation()
+{
+	AMPPlayerController* PC = Cast<AMPPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	PC->bShowMouseCursor = true;
+	PC->SetInputMode(FInputModeUIOnly());
+	LOG(Warning, TEXT("End %s"), NETMODE_WORLD);
+	if (IsDeath)
+	{
+		DeathWidget = CreateWidget<UWidget_Death>(GetWorld(), DeathWidgetClass);
+		DeathWidget->AddToViewport();
+		
+		
+	}
+	else
+	{
+		WinnerWidget = CreateWidget<UWidget_Winner>(GetWorld(), WinnerWidgetClass);
+		WinnerWidget->AddToViewport();
+	}
+	
+
+}
+
+void AMPPlayer::AddWidget()
 {
 	ScopeWidget = CreateWidget<UScopeWidget>(GetWorld(), ScopeWidgetClass);
 	ScopeWidget->AddToViewport();
 	ScopeWidget->SetVisibility(ESlateVisibility::Hidden);
+
 }
 
 float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
@@ -819,6 +900,9 @@ float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, ACon
 	if (ActualDamage > 0.f)
 	{
 		PlayerHP -= ActualDamage;
+
+		HitSoundClient(GetActorLocation());
+
 		if (IsValid(GetController())&&PlayerHP <= 0.f)
 		{
 			IsDeath = true;
@@ -826,6 +910,11 @@ float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, ACon
 			WeaponCamera->Deactivate();
 			FollowCamera->Activate();
 			Death();
+			GameMode->EndGame.Broadcast();
+			//AMPPlayerController* PC = Cast<AMPPlayerController>(GetController());
+			//CHECK(PC != nullptr)
+			
+		
 		}
 	}
 	return ActualDamage;

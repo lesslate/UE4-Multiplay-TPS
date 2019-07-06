@@ -26,7 +26,7 @@
 /wd4838
 /we4668
 /I .
-/I "D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions\Private"
+/I D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions\Private
 /I ..\Plugins\Online\OnlineSubsystem\Intermediate\Build\Win64\UE4\Inc\OnlineSubsystem
 /I ..\Plugins\Online\OnlineSubsystem
 /I ..\Plugins\Online\OnlineSubsystem\Source
@@ -236,10 +236,10 @@
 /I ..\Intermediate\Build\Win64\UE4\Inc\AnimationCore
 /I Runtime\AnimationCore\Public
 /I Runtime\AnimationCore
-/I "D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Inc\AdvancedSessions"
-/I "D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Source"
-/I "D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions\Classes"
-/I "D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions"
+/I D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Inc\AdvancedSessions
+/I D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Source
+/I D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions\Classes
+/I D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Source\AdvancedSessions
 /I "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\INCLUDE"
 /I "C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.1\include\um"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.16299.0\ucrt"
@@ -247,12 +247,12 @@
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.16299.0\um"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.16299.0\winrt"
 /D_HAS_EXCEPTIONS=0
-/FI"D:\Documents\Unreal Projects\VRExpPluginExp\Intermediate\Build\Win64\VRExpPluginExample\Shipping\Engine\SharedPCH.Engine.h"
-/Yu"D:\Documents\Unreal Projects\VRExpPluginExp\Intermediate\Build\Win64\VRExpPluginExample\Shipping\Engine\SharedPCH.Engine.h"
-/Fp"D:\Documents\Unreal Projects\VRExpPluginExp\Intermediate\Build\Win64\VRExpPluginExample\Shipping\Engine\SharedPCH.Engine.h.pch"
-"D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Module.AdvancedSessions.cpp"
-/FI"D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Definitions.AdvancedSessions.h"
-/Fo"D:\Documents\Unreal Projects\VRExpPluginExp\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Module.AdvancedSessions.cpp.obj"
+/FI"D:\MultiProject4.22\MP\Intermediate\Build\Win64\MP\Shipping\Engine\SharedPCH.Engine.h"
+/Yu"D:\MultiProject4.22\MP\Intermediate\Build\Win64\MP\Shipping\Engine\SharedPCH.Engine.h"
+/Fp"D:\MultiProject4.22\MP\Intermediate\Build\Win64\MP\Shipping\Engine\SharedPCH.Engine.h.pch"
+"D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Module.AdvancedSessions.cpp"
+/FI"D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Definitions.AdvancedSessions.h"
+/Fo"D:\MultiProject4.22\MP\Plugins\AdvancedSessions\AdvancedSessions\Intermediate\Build\Win64\UE4\Shipping\AdvancedSessions\Module.AdvancedSessions.cpp.obj"
 /TP
 /GR-
 /W4

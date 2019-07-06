@@ -15,3 +15,4 @@ AMPGameMode::AMPGameMode()
 		PlayerControllerClass = AMPPlayerController::StaticClass();
 	}
 }
+

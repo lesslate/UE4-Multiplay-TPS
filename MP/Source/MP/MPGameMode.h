@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "MPGameMode.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FEndGame);
+
 UCLASS(minimalapi)
 class AMPGameMode : public AGameModeBase
 {
@@ -13,6 +15,9 @@ class AMPGameMode : public AGameModeBase
 
 public:
 	AMPGameMode();
+
+	FEndGame EndGame;
+
 };
 
 

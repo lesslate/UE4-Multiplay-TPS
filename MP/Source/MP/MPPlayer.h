@@ -23,8 +23,18 @@ public:
 	void SetCrouchMovement();
 	void SetProneMovement();
 
+	UFUNCTION(Client,Reliable)
+	void AddEndGameWidget();
+	void AddEndGameWidget_Implementation();
+
 	UPROPERTY(EditDefaultsOnly, Category = Scope)
 	TSubclassOf<class UScopeWidget> ScopeWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = UI)
+	TSubclassOf<class UWidget_Death> DeathWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = UI)
+	TSubclassOf<class UWidget_Winner> WinnerWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = Bullet)
 	TSubclassOf<class AActor> AmmoClass;
@@ -35,12 +45,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
 	class UScopeWidget* ScopeWidget;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UWidget_Death* DeathWidget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UWidget_Winner* WinnerWidget;
+
 	UFUNCTION(BlueprintCallable, Category = "Widget")
-	void AddScopeWidget();
+	void AddWidget();
 
 	UPROPERTY()
 	FTimerHandle timer;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class AMPGameMode* GameMode;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class AMPPlayerController* MPPC;
@@ -130,6 +148,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Audio")
 	class USoundCue* AimCue;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Audio")
+	class USoundCue* HitCue;
 
 	// 무기 메시 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
@@ -282,6 +303,23 @@ public:
 	UFUNCTION(Reliable, NetMulticast)
 	void ReloadMulticast();
 	void ReloadMulticast_Implementation();
+
+
+	//// FireSound ///////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation)
+	void FireSoundServer(FVector SoundLocation);
+	void FireSoundServer_Implementation(FVector SoundLocation);
+	bool FireSoundServer_Validate(FVector SoundLocation);
+
+	UFUNCTION(Reliable, NetMulticast)
+	void FireSoundMulticast(FVector SoundLocation);
+	void FireSoundMulticast_Implementation(FVector SoundLocation);
+
+	UFUNCTION(Reliable,Client)
+	void HitSoundClient(FVector SoundLocation);
+	void HitSoundClient_Implementation(FVector SoundLocation);
+
 private:
 	UPROPERTY()
 	class UMPPlayerAnimInstance* PlayerAnim;

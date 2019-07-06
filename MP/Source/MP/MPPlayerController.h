@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "MP.h"
 #include "GameFramework/PlayerController.h"
 #include "MPPlayerController.generated.h"
 
@@ -17,13 +17,28 @@ class MP_API AMPPlayerController : public APlayerController
 public:
 	AMPPlayerController();
 
-	UPROPERTY(EditDefaultsOnly, Category = Scope)
-	TSubclassOf<class UWidget_HUD> HUDWidgetClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = UI)
+	TSubclassOf<class UWidget_Death> WidgetDeathClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
-	class UWidget_HUD* HUDWidget;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = UI)
+	TSubclassOf<class UWidget_Winner> WidgetWinnerClass;
+
+	UFUNCTION(client, Reliable,BlueprintCallable, Category = "Widget")
+	void AddDeathWidget();
+	void AddDeathWidget_Implementation();
+
+	UFUNCTION(client, Reliable,BlueprintCallable, Category = "Widget")
+	void AddWinnerWidget();
+	void AddWinnerWidget_Implementation();
 
 	
 protected:
 	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UWidget_Death* DeathWidget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = UI)
+	class UWidget_Winner* WinnerWidget;
+
 };
