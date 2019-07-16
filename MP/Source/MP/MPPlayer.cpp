@@ -32,6 +32,8 @@
 #include "Widget_Death.h"
 #include "Widget_Winner.h"
 #include "MPGameMode.h"
+#include "Components/WidgetComponent.h"
+
 
 // Sets default values
 AMPPlayer::AMPPlayer()
@@ -53,6 +55,8 @@ AMPPlayer::AMPPlayer()
 	GetMesh()->VisibilityBasedAnimTickOption= EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // Server Refresh Bones
 
 	Magazine = 5;
+	PlayerMouseSensitivity = 80.0f;
+
 
 	GetCharacterMovement()->JumpZVelocity = 350.0f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -98,6 +102,7 @@ AMPPlayer::AMPPlayer()
 	// 오디오 컴포넌트
 	PlayerAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerAudio"));
 	PlayerAudio->SetupAttachment(GetMesh());
+
 
 	// 파티클 초기화
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> Fire(TEXT("ParticleSystem'/Game/WeaponEffects/AssaultRifle_MF.AssaultRifle_MF'"));
@@ -147,26 +152,26 @@ AMPPlayer::AMPPlayer()
 		GetMesh()->SetSkeletalMesh(PlayerMesh.Object);
 	}
 
-	// 위젯 클래스
-	static ConstructorHelpers::FClassFinder<UScopeWidget> ScopeWidgetC(TEXT("WidgetBlueprint'/Game/Widget/BP_Scope.BP_Scope_C'"));
-	if (ScopeWidgetC.Succeeded())
-	{
-		ScopeWidgetClass = ScopeWidgetC.Class;
-	}
+	//// 위젯 클래스
+	//static ConstructorHelpers::FClassFinder<UScopeWidget> ScopeWidgetC(TEXT("WidgetBlueprint'/Game/Widget/BP_Scope.BP_Scope_C'"));
+	//if (ScopeWidgetC.Succeeded())
+	//{
+	//	ScopeWidgetClass = ScopeWidgetC.Class;
+	//}
 
-	// 위젯 클래스
-	static ConstructorHelpers::FClassFinder<UWidget_Death> DEATHWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_DeathWidget.BP_DeathWidget_C'"));
-	if (DEATHWIDGET.Succeeded())
-	{
-		DeathWidgetClass = DEATHWIDGET.Class;
-	}
+	//// 위젯 클래스
+	//static ConstructorHelpers::FClassFinder<UWidget_Death> DEATHWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_DeathWidget.BP_DeathWidget_C'"));
+	//if (DEATHWIDGET.Succeeded())
+	//{
+	//	DeathWidgetClass = DEATHWIDGET.Class;
+	//}
 
-	// 위젯 클래스
-	static ConstructorHelpers::FClassFinder<UWidget_Winner> WINNERWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_WinnerWidget.BP_WinnerWidget_C'"));
-	if (WINNERWIDGET.Succeeded())
-	{
-		WinnerWidgetClass = WINNERWIDGET.Class;
-	}
+	//// 위젯 클래스
+	//static ConstructorHelpers::FClassFinder<UWidget_Winner> WINNERWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_WinnerWidget.BP_WinnerWidget_C'"));
+	//if (WINNERWIDGET.Succeeded())
+	//{
+	//	WinnerWidgetClass = WINNERWIDGET.Class;
+	//}
 
 }
 
@@ -254,6 +259,7 @@ void AMPPlayer::AddControllerPitchInput(float Val)
 	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
+		Val = PlayerMouseSensitivity * GetInputAxisValue("LookUp")*UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
 		PC->AddPitchInput(Val);
 	}
 	WraistPitch = GetControlRotation().Pitch;
@@ -270,6 +276,7 @@ void AMPPlayer::AddControllerYawInput(float Val)
 	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
+		Val = PlayerMouseSensitivity *GetInputAxisValue("Turn")*UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
 		PC->AddYawInput(Val);
 	}
 }

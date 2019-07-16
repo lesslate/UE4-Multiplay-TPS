@@ -27,7 +27,10 @@ public:
 	void AddEndGameWidget();
 	void AddEndGameWidget_Implementation();
 
-	UPROPERTY(EditDefaultsOnly, Category = Scope)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=PlayerState)
+	float PlayerMouseSensitivity;
+
+	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UScopeWidget> ScopeWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = UI)
