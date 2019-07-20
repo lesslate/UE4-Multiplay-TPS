@@ -7,6 +7,7 @@
 #include "MPGameMode.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FEndGame);
+DECLARE_MULTICAST_DELEGATE(FBombing);
 
 UCLASS(minimalapi)
 class AMPGameMode : public AGameModeBase
@@ -17,7 +18,8 @@ public:
 	AMPGameMode();
 
 	FEndGame EndGame;
-
+	FBombing BombStart;
+	FBombing BombStart2;
 };
 
 
