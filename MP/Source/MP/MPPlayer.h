@@ -27,6 +27,7 @@ public:
 	void AddEndGameWidget();
 	void AddEndGameWidget_Implementation();
 
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=PlayerState)
 	float PlayerMouseSensitivity;
 
@@ -143,6 +144,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	class USphereComponent* Sphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	class UCapsuleComponent* WeaponCapsule;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UWidgetComponent* PlayerWidget;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Audio")
 	class USoundCue* ShotCue;
 
@@ -204,9 +211,9 @@ public:
 	void PlayerCrouch();
 
 	UFUNCTION(Reliable, Server, WithValidation)
-	void CrouchServer(bool Crouching);
-	void CrouchServer_Implementation(bool Crouching);
-	bool CrouchServer_Validate(bool Crouching);
+	void CrouchServer(bool Prone, bool Crouching);
+	void CrouchServer_Implementation(bool Prone, bool Crouching);
+	bool CrouchServer_Validate(bool Prone, bool Crouching);
 
 	/////// Prone //////////////////////
 
@@ -218,7 +225,7 @@ public:
 	bool ProneServer_Validate();
 
 	/////// Aiming //////////////////////
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void Aiming();
 
 	UFUNCTION(Reliable, Server, WithValidation)
@@ -322,6 +329,19 @@ public:
 	UFUNCTION(Reliable,Client)
 	void HitSoundClient(FVector SoundLocation);
 	void HitSoundClient_Implementation(FVector SoundLocation);
+
+	//// Bombing /////////////////////////////
+
+	UFUNCTION(Reliable, Server, WithValidation, BlueprintCallable, Category = Bomb)
+	void LeftBombing();
+	void LeftBombing_Implementation();
+	bool LeftBombing_Validate();
+
+
+	UFUNCTION(Reliable, Server, WithValidation, BlueprintCallable, Category = Bomb)
+	void RightBombing();
+	void RightBombing_Implementation();
+	bool RightBombing_Validate();
 
 private:
 	UPROPERTY()

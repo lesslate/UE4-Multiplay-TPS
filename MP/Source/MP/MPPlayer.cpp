@@ -35,6 +35,7 @@
 #include "Components/WidgetComponent.h"
 
 
+
 // Sets default values
 AMPPlayer::AMPPlayer()
 {
@@ -80,9 +81,13 @@ AMPPlayer::AMPPlayer()
 	TPSpringArm->bInheritYaw = true;
 	TPSpringArm->bDoCollisionTest = true;
 
+	// 총구 스피어
 	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	Sphere->SetupAttachment(WeaponMesh);
 
+	// 무기 콜리전
+	WeaponCapsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("WeaponCapsule"));
+	WeaponCapsule->SetupAttachment(WeaponMesh);
 
 	// 카메라 생성
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -103,6 +108,9 @@ AMPPlayer::AMPPlayer()
 	PlayerAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerAudio"));
 	PlayerAudio->SetupAttachment(GetMesh());
 
+	// 위젯 컴포넌트
+	PlayerWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerWidget"));
+	PlayerWidget->SetupAttachment(RootComponent);
 
 	// 파티클 초기화
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> Fire(TEXT("ParticleSystem'/Game/WeaponEffects/AssaultRifle_MF.AssaultRifle_MF'"));
@@ -204,6 +212,7 @@ void AMPPlayer::BeginPlay()
 	Super::BeginPlay();
 
 	AddWidget();
+
 	
 }
 
@@ -215,6 +224,7 @@ void AMPPlayer::PostInitializeComponents()
 	CHECK(PlayerAnim != nullptr)
 
 	GameMode = Cast<AMPGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	CHECK(GameMode != nullptr)
 	if (GameMode != nullptr)
 	{
 		GameMode->EndGame.AddUObject(this, &AMPPlayer::AddEndGameWidget);
@@ -355,8 +365,15 @@ void AMPPlayer::PlayerCrouch()
 		if (IsProne)
 		{
 			GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
-			IsCrouch = true;
-			IsProne = false;
+			//IsCrouch = true;
+			//IsProne = false;
+			if (IsAiming)
+			{
+				APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+				CameraManager->ViewPitchMin = -30;
+				CameraManager->ViewPitchMax = 30;
+			}
+			CrouchServer(true,true);
 			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
 			
 		}
@@ -372,7 +389,7 @@ void AMPPlayer::PlayerCrouch()
 					CameraManager->ViewPitchMin = -30;
 					CameraManager->ViewPitchMax = 30;
 				}
-				CrouchServer(true);
+				CrouchServer(false,true);
 			}
 			else
 			{
@@ -384,7 +401,7 @@ void AMPPlayer::PlayerCrouch()
 				}
 				UnCrouch();
 				//IsCrouch = false;
-				CrouchServer(false);
+				CrouchServer(false,false);
 			}
 
 		}
@@ -393,9 +410,15 @@ void AMPPlayer::PlayerCrouch()
 	LOG(Warning, TEXT("%s, %s"), IsCrouch ? TEXT("true") : TEXT("false"),NETMODE_WORLD);
 }
 
-void AMPPlayer::CrouchServer_Implementation(bool Crouching)
+void AMPPlayer::CrouchServer_Implementation(bool Prone, bool Crouching)
 {
-	if (Crouching)
+	if (Prone&&Crouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
+		IsProne = false;
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
+	}
+	else if (Crouching)
 	{
 		IsCrouch = true;
 	}
@@ -406,7 +429,7 @@ void AMPPlayer::CrouchServer_Implementation(bool Crouching)
 	
 }
 
-bool AMPPlayer::CrouchServer_Validate(bool Crouching)
+bool AMPPlayer::CrouchServer_Validate(bool Prone, bool Crouching)
 {
 	return true;
 }
@@ -417,8 +440,9 @@ void AMPPlayer::PlayerProne()
 {
 	if (!IsProne && !IsSprint && IsCrouch)
 	{
+		
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
-		IsProne = true;
+		//IsProne = true;
 
 		if (IsAiming)
 		{
@@ -464,6 +488,7 @@ void AMPPlayer::Aiming()
 	{
 		AimingServer(true);
 		IsAiming = true;
+		WeaponCapsule->SetGenerateOverlapEvents(true);
 
 		//CameraAngle Limit
 		if (IsCrouch)
@@ -492,7 +517,8 @@ void AMPPlayer::Aiming()
 	{
 		AimingServer(false);
 		IsAiming = false;
-	
+		WeaponCapsule->SetGenerateOverlapEvents(false);
+
 		//CameraAngle Reset
 		APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
 		CameraManager->ViewPitchMin = -89.9f;
@@ -893,6 +919,28 @@ void AMPPlayer::AddEndGameWidget_Implementation()
 
 }
 
+void AMPPlayer::LeftBombing_Implementation()
+{
+	CHECK(GameMode!=nullptr)
+	GameMode->BombStart.Broadcast();
+}
+
+bool AMPPlayer::LeftBombing_Validate()
+{
+	return true;
+}
+
+void AMPPlayer::RightBombing_Implementation()
+{
+	CHECK(GameMode != nullptr)
+	GameMode->BombStart2.Broadcast();
+}
+
+bool AMPPlayer::RightBombing_Validate()
+{
+	return true;
+}
+
 void AMPPlayer::AddWidget()
 {
 	ScopeWidget = CreateWidget<UScopeWidget>(GetWorld(), ScopeWidgetClass);
@@ -917,7 +965,9 @@ float AMPPlayer::TakeDamage(float Damage, FDamageEvent const & DamageEvent, ACon
 			WeaponCamera->Deactivate();
 			FollowCamera->Activate();
 			Death();
+			
 			GameMode->EndGame.Broadcast();
+			
 			//AMPPlayerController* PC = Cast<AMPPlayerController>(GetController());
 			//CHECK(PC != nullptr)
 			
