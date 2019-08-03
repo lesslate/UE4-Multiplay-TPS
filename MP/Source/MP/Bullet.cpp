@@ -79,7 +79,7 @@ void ABullet::Tick(float DeltaTime)
 		AActor* HitActor=HitResult.GetActor();
 		if (HitResult.GetActor())
 		{
-			DrawDebugSolidBox(GetWorld(), HitResult.ImpactPoint, FVector(10.0f), FColor::Blue, true);
+			//DrawDebugSolidBox(GetWorld(), HitResult.ImpactPoint, FVector(10.0f), FColor::Blue, true);
 
 			if (HitResult.BoneName != NAME_None)
 			{

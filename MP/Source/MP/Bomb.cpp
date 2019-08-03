@@ -50,5 +50,5 @@ void ABomb::BombOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 
 	BombParticle->Activate();
 
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), 3000.0f, BombLocation, 2000.0f, nullptr, TArray<AActor*>(), this, false);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), 3000.0f, BombLocation, 1000.0f, nullptr, TArray<AActor*>(), this, false);
 }
