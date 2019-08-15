@@ -71,7 +71,7 @@ void AJet::BombingServer_Implementation()
 	if (CanBombing)
 	{
 		BombingMulticast();
-		GetWorld()->GetTimerManager().SetTimer(Timer, this, &AJet::BombingServer , 0.3f, false);
+		GetWorld()->GetTimerManager().SetTimer(Timer, this, &AJet::BombingServer , 0.3f, false); // 0.3 초 마다 폭탄 스폰
 	}
 }
 
@@ -104,5 +104,6 @@ void AJet::Tick(float DeltaTime)
 void AJet::Destroyed()
 {
 	Super::Destroyed();
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this); // 소멸시 타이머 초기화
 }

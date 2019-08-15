@@ -53,7 +53,7 @@ AMPPlayer::AMPPlayer()
 	CurrentAmmo = 5;
 	RemainAmmo = 50;
 	
-	GetMesh()->VisibilityBasedAnimTickOption= EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // Server Refresh Bones
+	GetMesh()->VisibilityBasedAnimTickOption= EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // Server Refresh Bones ( 서버와 클라이언트 본 Refresh)
 
 	Magazine = 5;
 	PlayerMouseSensitivity = 80.0f;
@@ -160,26 +160,6 @@ AMPPlayer::AMPPlayer()
 		GetMesh()->SetSkeletalMesh(PlayerMesh.Object);
 	}
 
-	//// 위젯 클래스
-	//static ConstructorHelpers::FClassFinder<UScopeWidget> ScopeWidgetC(TEXT("WidgetBlueprint'/Game/Widget/BP_Scope.BP_Scope_C'"));
-	//if (ScopeWidgetC.Succeeded())
-	//{
-	//	ScopeWidgetClass = ScopeWidgetC.Class;
-	//}
-
-	//// 위젯 클래스
-	//static ConstructorHelpers::FClassFinder<UWidget_Death> DEATHWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_DeathWidget.BP_DeathWidget_C'"));
-	//if (DEATHWIDGET.Succeeded())
-	//{
-	//	DeathWidgetClass = DEATHWIDGET.Class;
-	//}
-
-	//// 위젯 클래스
-	//static ConstructorHelpers::FClassFinder<UWidget_Winner> WINNERWIDGET(TEXT("WidgetBlueprint'/Game/Widget/BP_WinnerWidget.BP_WinnerWidget_C'"));
-	//if (WINNERWIDGET.Succeeded())
-	//{
-	//	WinnerWidgetClass = WINNERWIDGET.Class;
-	//}
 
 }
 
@@ -211,7 +191,7 @@ void AMPPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AddWidget();
+	AddWidget(); // Add Scope Widget
 
 	
 }
@@ -269,11 +249,11 @@ void AMPPlayer::AddControllerPitchInput(float Val)
 	if (Val != 0.f && Controller && Controller->IsLocalPlayerController())
 	{
 		APlayerController* const PC = CastChecked<APlayerController>(Controller);
-		Val = PlayerMouseSensitivity * GetInputAxisValue("LookUp")*UGameplayStatics::GetWorldDeltaSeconds(GetWorld());
+		Val = PlayerMouseSensitivity * GetInputAxisValue("LookUp")*UGameplayStatics::GetWorldDeltaSeconds(GetWorld()); // 마우스 감도에 따른 시점변환
 		PC->AddPitchInput(Val);
 	}
 	WraistPitch = GetControlRotation().Pitch;
-	if(FMath::Abs(WraistPitch - PreviousWraistPitch)>1)
+	if(FMath::Abs(WraistPitch - PreviousWraistPitch)>1) // Pitch값 변화시 서버로 전송 (캐릭터의 상체 Bone 조절)
 	{
 		WraistPitchServer(WraistPitch);
 		PreviousWraistPitch = WraistPitch;
@@ -371,7 +351,7 @@ void AMPPlayer::PlayerCrouch()
 			{
 				APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
 				CameraManager->ViewPitchMin = -30;
-				CameraManager->ViewPitchMax = 30;
+				CameraManager->ViewPitchMax = 30; // 카메라 시야 최대 최소 시야각도 조절
 			}
 			CrouchServer(true,true);
 			GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
@@ -400,7 +380,7 @@ void AMPPlayer::PlayerCrouch()
 					CameraManager->ViewPitchMax = 89.9;
 				}
 				UnCrouch();
-				//IsCrouch = false;
+				
 				CrouchServer(false,false);
 			}
 
@@ -412,13 +392,13 @@ void AMPPlayer::PlayerCrouch()
 
 void AMPPlayer::CrouchServer_Implementation(bool Prone, bool Crouching)
 {
-	if (Prone&&Crouching)
+	if (Prone&&Crouching) // Prone 상태 해제
 	{
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = false;
 		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetCrouchMovement, 1.3f, false);
 	}
-	else if (Crouching)
+	else if (Crouching) 
 	{
 		IsCrouch = true;
 	}
@@ -442,11 +422,11 @@ void AMPPlayer::PlayerProne()
 	{
 		
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
-		//IsProne = true;
 
-		if (IsAiming)
+
+		if (IsAiming) // Prone 상태 에임시 카메라 최대최소 각도 
 		{
-			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
+			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)); 
 			CameraManager->ViewPitchMin = -5;
 			CameraManager->ViewPitchMax = 30;
 		}
@@ -463,12 +443,6 @@ void AMPPlayer::ProneServer_Implementation()
 		GetCharacterMovement()->MaxWalkSpeedCrouched = 0;
 		IsProne = true;
 
-	/*	if (IsAiming)
-		{
-			APlayerCameraManager* CameraManager = Cast<APlayerCameraManager>(UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0));
-			CameraManager->ViewPitchMin = -5;
-			CameraManager->ViewPitchMax = 30;
-		}*/
 		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::SetProneMovement, 1.3f, false);
 	}
 }
@@ -488,7 +462,7 @@ void AMPPlayer::Aiming()
 	{
 		AimingServer(true);
 		IsAiming = true;
-		WeaponCapsule->SetGenerateOverlapEvents(true);
+		WeaponCapsule->SetGenerateOverlapEvents(true); // Capsule 오버랩시 에임상태 풀리도록함 (Glitch 방지)
 
 		//CameraAngle Limit
 		if (IsCrouch)
@@ -504,16 +478,16 @@ void AMPPlayer::Aiming()
 			CameraManager->ViewPitchMax = 30;
 		}
 		GetCharacterMovement()->RotationRate = FRotator(0.0f, 270.0f, 0.0f);
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+		GetCharacterMovement()->bUseControllerDesiredRotation = true; // 에임 방향으로 캐릭터 회전
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 		ScopeWidget->SetVisibility(ESlateVisibility::Visible);
 		FollowCamera->Deactivate();
-		WeaponCamera->Activate();
+		WeaponCamera->Activate(); // 총구 카메라 Activate
 
 		PlayerAudio->SetSound(AimCue);
 		PlayerAudio->Play();
 	}
-	else
+	else // 에임 해제
 	{
 		AimingServer(false);
 		IsAiming = false;
@@ -568,7 +542,7 @@ bool AMPPlayer::AimingServer_Validate(bool Aiming)
 
 void AMPPlayer::Fire()
 {
-	bool IsMove = GetVelocity().Size()>0; // Can Fire Character is Not Move
+	bool IsMove = GetVelocity().Size()>0; // 움직이지 않을때 발사가능
 	
 	if (!FireDelay && IsAiming && !IsMove && !IsDeath&& CurrentAmmo!=0)
 	{
@@ -580,7 +554,7 @@ void AMPPlayer::Fire()
 		UGameplayStatics::SpawnEmitterAttached(FireParticle, WeaponMesh, FName("Muzzle"), FVector::ZeroVector, FRotator::ZeroRotator, FVector(1.0f, 1.0f, 1.0f)); 
 
 		
-		OnFire();
+		OnFire(); // 발사체 생성
 
 		// Play Animation
 		if (IsCrouch)
@@ -601,7 +575,7 @@ void AMPPlayer::Fire()
 			PlayerAnim->PlayFireMontage(); //StandFire
 			StandFireAnimServer();
 		}
-		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::ResetDelay, 1.0f, false);
+		GetWorld()->GetTimerManager().SetTimer(timer, this, &AMPPlayer::ResetDelay, 1.0f, false); // 발사 딜레이 초기화
 	}
 	if(CurrentAmmo==0)
 	{
@@ -620,7 +594,7 @@ void AMPPlayer::OnFire()
 
 	FTransform Transform=UKismetMathLibrary::MakeTransform(StartLocation, CameraRotation,FVector(1,1,1));
 
-	//GameStatic->PlaySoundAtLocation(this, ShotCue, StartLocation);
+	
 	FireSoundServer(StartLocation);
 
 	FVector NewVelocity = WeaponCamera->GetForwardVector()*24000.0f; // 발사체 속도
@@ -694,6 +668,7 @@ bool AMPPlayer::WraistPitchServer_Validate(float pitch)
 }
 
 /////////// StandFireAnim ///////////////////////
+
 void AMPPlayer::StandFireAnimServer_Implementation()
 {
 	StandFireAnimMulticast();
@@ -708,6 +683,7 @@ void AMPPlayer::StandFireAnimMulticast_Implementation()
 {
 	PlayerAnim->PlayFireMontage();
 }
+
 /////////// CrouchFire///////////////////////////
 
 void AMPPlayer::CrouchFireServer_Implementation()
