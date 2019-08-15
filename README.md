@@ -7,7 +7,8 @@
 
 ## 실행 영상
 
-<iframe width="560" height="315" src="https://youtu.be/U_kw0PyjHHw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[https://youtu.be/U_kw0PyjHHw](https://youtu.be/U_kw0PyjHHw)
+
 
 
 > 다운로드 링크 
