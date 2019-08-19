@@ -79,7 +79,7 @@ void ABullet::Tick(float DeltaTime)
 		AActor* HitActor=HitResult.GetActor();
 		if (HitResult.GetActor())
 		{
-			//DrawDebugSolidBox(GetWorld(), HitResult.ImpactPoint, FVector(10.0f), FColor::Blue, true);
+			DrawDebugSolidBox(GetWorld(), HitResult.ImpactPoint, FVector(10.0f), FColor::Blue, true);
 
 			if (HitResult.BoneName != NAME_None)
 			{
@@ -104,7 +104,7 @@ void ABullet::Tick(float DeltaTime)
 		}
 			
 	}
-	//DrawDebugLine(GetWorld(), StartTrace, EndTrace, FColor(255, 0, 255), false, 10.0f);
+	DrawDebugLine(GetWorld(), StartTrace, EndTrace, FColor(255, 0, 255), false, 10.0f);
 
 	SetActorLocation(EndTrace);
 	Velocity = Velocity + CurrentGravity;

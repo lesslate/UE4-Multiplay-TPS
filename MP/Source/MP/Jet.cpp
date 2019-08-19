@@ -28,7 +28,8 @@ AJet::AJet()
 	BombSphere = CreateDefaultSubobject<USphereComponent>(TEXT("BombSphere"));
 	BombSphere->SetupAttachment(JetStatic);
 
-	
+	GetCharacterMovement()->DefaultLandMovementMode = MOVE_Flying;
+	GetCharacterMovement()->MaxFlySpeed = 1000000.0;
 	
 }
 
