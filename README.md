@@ -31,6 +31,30 @@ https://drive.google.com/file/d/1USJV3jOiyXbbPNpFNXRvDagVRUpJF4vd/view?usp=shari
 세션이 생성되면 로비로 이동되며, 다른 플레이어가 세션에 참가하여 게임을 할수 있습니다.
 
 
+> 조작키
+
+W,A,S,D - 이동
+
+C - 앉기/서기
+
+Z - (앉은 상태에서) 눕기
+
+오른쪽 마우스 클릭 - 조준
+
+왼쪽 마우스 클릭 - 발사
+
+휠 드래그 - 줌
+
+왼쪽 Shift - 달리기
+
+F키 - 상호작용
+
+Enter - 채팅창 활성화
+
+ESC - 메뉴
+
+
+
 ## 실행 영상
 
 [https://youtu.be/U_kw0PyjHHw](https://youtu.be/U_kw0PyjHHw)
